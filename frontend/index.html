@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram B2B Outreach Control Hub</title>
-    <!-- Tailwind CSS -->
+    <title>Apex Connect — B2B Outreach Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -12,305 +11,685 @@
                 extend: {
                     colors: {
                         brand: {
-                            50: '#f5f3ff',
-                            100: '#ede9fe',
-                            500: '#8b5cf6',
-                            600: '#7c3aed',
-                            700: '#6d28d9',
-                            900: '#4c1d95',
-                        },
-                        darkBg: '#0f172a',
-                        glassBg: 'rgba(30, 41, 59, 0.7)',
-                        glassBorder: 'rgba(255, 255, 255, 0.08)'
+                            50:  '#eff6ff',
+                            100: '#dbeafe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        }
                     }
                 }
             }
         }
     </script>
-    <!-- Google Fonts & FontAwesome -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        * { font-family: 'Inter', sans-serif; }
+
         body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #0b0f19;
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.15) 0px, transparent 50%);
+            background: #020818;
+            background-image:
+                radial-gradient(ellipse at 20% 10%, rgba(37, 99, 235, 0.18) 0px, transparent 55%),
+                radial-gradient(ellipse at 80% 90%, rgba(59, 130, 246, 0.12) 0px, transparent 55%),
+                radial-gradient(ellipse at 50% 50%, rgba(6, 18, 50, 0.9) 0px, transparent 80%);
+            min-height: 100vh;
         }
-        .glass-panel {
-            background: rgba(17, 24, 39, 0.75);
+
+        /* Glass panels */
+        .glass {
+            background: rgba(10, 20, 50, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(59, 130, 246, 0.12);
+        }
+        .glass-bright {
+            background: rgba(15, 30, 70, 0.7);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        .glass-card {
+            background: rgba(8, 16, 40, 0.55);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.1);
         }
-        .custom-scroll::-webkit-scrollbar {
-            width: 6px;
+
+        /* Sidebar */
+        .sidebar {
+            background: rgba(5, 12, 35, 0.85);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border-right: 1px solid rgba(59, 130, 246, 0.15);
         }
-        .custom-scroll::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
+
+        /* Nav item */
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #94a3b8;
+            font-size: 13.5px;
+            font-weight: 500;
+            border: 1px solid transparent;
         }
-        .custom-scroll::-webkit-scrollbar-thumb {
-            background: rgba(139, 92, 246, 0.4);
-            border-radius: 4px;
+        .nav-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: #93c5fd;
+            border-color: rgba(59, 130, 246, 0.15);
         }
+        .nav-item.active {
+            background: rgba(37, 99, 235, 0.2);
+            color: #60a5fa;
+            border-color: rgba(59, 130, 246, 0.3);
+            box-shadow: 0 0 16px rgba(37, 99, 235, 0.15);
+        }
+        .nav-item .nav-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .nav-item.active .nav-icon {
+            background: rgba(37, 99, 235, 0.3);
+            color: #60a5fa;
+        }
+
+        /* Instagram icon glow effect */
+        .insta-icon {
+            background: linear-gradient(135deg, #0ea5e9, #2563eb, #7c3aed);
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.6), 0 0 40px rgba(37, 99, 235, 0.3);
+            animation: iconPulse 2.5s ease-in-out infinite;
+        }
+        @keyframes iconPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(37, 99, 235, 0.6), 0 0 40px rgba(37, 99, 235, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(37, 99, 235, 0.9), 0 0 60px rgba(37, 99, 235, 0.5), 0 0 80px rgba(124, 58, 237, 0.2); }
+        }
+
+        /* Stat cards */
+        .stat-card {
+            background: rgba(10, 20, 50, 0.6);
+            border: 1px solid rgba(59, 130, 246, 0.12);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(12px);
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            border-color: rgba(59, 130, 246, 0.3);
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.1);
+            transform: translateY(-1px);
+        }
+
+        /* Blue glow button */
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            transition: all 0.25s ease;
+        }
+        .btn-primary:hover {
+            box-shadow: 0 6px 28px rgba(37, 99, 235, 0.6);
+            transform: translateY(-1px);
+        }
+
+        /* Pages */
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(37, 99, 235, 0.4); border-radius: 4px; }
+
+        /* Table row */
+        .leads-row:hover { background: rgba(37, 99, 235, 0.06); }
+
+        /* Input styles */
+        .form-input {
+            background: rgba(5, 12, 35, 0.7);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            color: white;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+            width: 100%;
+        }
+        .form-input:focus { border-color: rgba(59, 130, 246, 0.5); }
+        .form-input::placeholder { color: #475569; }
+
+        /* Badge */
+        .badge-pending   { background: rgba(100,116,139,0.2); color: #94a3b8; }
+        .badge-dmed      { background: rgba(16,185,129,0.15); color: #34d399; }
+        .badge-replied   { background: rgba(139,92,246,0.15); color: #a78bfa; }
+        .badge-failed    { background: rgba(239,68,68,0.15);  color: #f87171; }
+
+        /* Live dot */
+        .live-dot span:first-child {
+            animation: ping 1.2s cubic-bezier(0,0,0.2,1) infinite;
+        }
+
+        /* Chart bar */
+        .chart-bar {
+            background: linear-gradient(to top, #1d4ed8, #60a5fa);
+            border-radius: 4px 4px 0 0;
+            transition: height 0.6s ease;
+        }
+
+        /* Glow line */
+        .glow-line {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(59,130,246,0.5), transparent);
+        }
+
+        /* Toggle switch */
+        .toggle-switch {
+            position: relative;
+            width: 40px;
+            height: 22px;
+        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: rgba(59,130,246,0.15);
+            border: 1px solid rgba(59,130,246,0.2);
+            border-radius: 22px;
+            transition: .3s;
+        }
+        .toggle-slider:before {
+            content: '';
+            position: absolute;
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background: #64748b;
+            border-radius: 50%;
+            transition: .3s;
+        }
+        input:checked + .toggle-slider { background: rgba(37,99,235,0.4); border-color: rgba(37,99,235,0.5); }
+        input:checked + .toggle-slider:before { transform: translateX(18px); background: #60a5fa; }
+
+        /* Page fade */
+        .page.active { animation: fadeIn 0.25s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+        /* Modal */
+        .modal-bg {
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(6px);
+        }
+
+        /* Analytics bars */
+        .ana-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .ana-bar-wrap { flex: 1; height: 8px; background: rgba(59,130,246,0.1); border-radius: 8px; overflow: hidden; }
+        .ana-bar { height: 100%; border-radius: 8px; background: linear-gradient(90deg, #2563eb, #60a5fa); }
     </style>
 </head>
-<body class="text-slate-100 min-h-screen flex flex-col">
+<body class="text-slate-100">
 
-    <!-- Header Navigation -->
-    <header class="glass-panel sticky top-0 z-50 px-4 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-3 border-b">
-        <div class="flex items-center space-x-3">
-            <div class="bg-brand-600 w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/30 animate-pulse shrink-0">
-                <i class="fa-brands fa-instagram text-lg sm:text-xl text-white"></i>
+<div class="flex h-screen overflow-hidden">
+
+    <!-- ═══════════════ SIDEBAR ═══════════════ -->
+    <aside class="sidebar w-64 flex-shrink-0 flex flex-col py-5 px-4 overflow-y-auto">
+
+        <!-- Logo -->
+        <div class="flex items-center gap-3 mb-8 px-2">
+            <div class="insta-icon w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0">
+                <i class="fa-brands fa-instagram text-white text-lg"></i>
             </div>
             <div>
-                <h1 class="text-base sm:text-xl font-bold tracking-tight text-white flex items-center flex-wrap gap-1">
-                    InstaOutreach <span class="text-xs bg-brand-500/20 text-brand-400 border border-brand-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">B2B Core v1</span>
-                </h1>
-                <p class="text-xs text-slate-400 hidden sm:block">Garment & Martial Arts Manufacturing Automation Engine</p>
+                <h1 class="text-white font-bold text-[15px] leading-tight tracking-tight">Apex Connect</h1>
+                <p class="text-[10px] text-blue-400/70 font-medium tracking-widest uppercase">B2B Outreach Hub</p>
             </div>
         </div>
 
-        <div class="flex items-center">
-            <!-- Campaign Toggle Button -->
-            <button id="toggleCampaignBtn" onclick="toggleCampaign()" class="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-medium tracking-wide shadow-lg transition duration-300 transform hover:scale-105 flex items-center space-x-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-emerald-500/20 text-sm sm:text-base">
-                <i class="fa-solid fa-play"></i>
-                <span>Launch Automation</span>
+        <div class="glow-line mb-5"></div>
+
+        <!-- Nav -->
+        <nav class="space-y-1 flex-1">
+            <div class="nav-item active" onclick="showPage('dashboard')">
+                <div class="nav-icon"><i class="fa-solid fa-gauge-high"></i></div>
+                <span>Dashboard</span>
+            </div>
+            <div class="nav-item" onclick="showPage('leads')">
+                <div class="nav-icon"><i class="fa-solid fa-users-viewfinder"></i></div>
+                <span>Leads CRM</span>
+            </div>
+            <div class="nav-item" onclick="showPage('analytics')">
+                <div class="nav-icon"><i class="fa-solid fa-chart-line"></i></div>
+                <span>Analytics</span>
+            </div>
+            <div class="nav-item" onclick="showPage('campaigns')">
+                <div class="nav-icon"><i class="fa-solid fa-rocket"></i></div>
+                <span>Campaigns</span>
+            </div>
+            <div class="nav-item" onclick="showPage('settings')">
+                <div class="nav-icon"><i class="fa-solid fa-sliders"></i></div>
+                <span>Settings</span>
+            </div>
+        </nav>
+
+        <div class="glow-line my-5"></div>
+
+        <!-- Campaign Toggle -->
+        <div class="glass-card rounded-xl p-3 mb-3">
+            <p class="text-[10px] text-slate-400 uppercase tracking-wider mb-2 font-medium">Campaign Engine</p>
+            <button id="toggleCampaignBtn" onclick="toggleCampaign()" class="btn-primary w-full rounded-lg py-2 text-xs font-semibold text-white flex items-center justify-center gap-2">
+                <i class="fa-solid fa-play" id="toggleIcon"></i>
+                <span id="toggleText">Launch Automation</span>
             </button>
         </div>
-    </header>
 
-    <!-- Main Workspace -->
-    <main class="flex-grow p-3 sm:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 max-w-7xl mx-auto w-full">
-        
-        <!-- Left Column: Metrics & Config Panel -->
-        <div class="lg:col-span-1 flex flex-col space-y-6">
-            
-            <!-- Quick Counters -->
-            <div class="glass-panel p-4 sm:p-5 rounded-2xl grid grid-cols-2 gap-3 sm:gap-4">
-                <div class="bg-slate-900/50 p-3 sm:p-4 rounded-xl border border-white/5">
-                    <p class="text-xs text-slate-400 uppercase tracking-wider">Total Leads</p>
-                    <h3 id="statTotalLeads" class="text-xl sm:text-2xl font-bold text-white mt-1">0</h3>
-                </div>
-                <div class="bg-slate-900/50 p-3 sm:p-4 rounded-xl border border-white/5">
-                    <p class="text-xs text-slate-400 uppercase tracking-wider">Active Bots</p>
-                    <h3 id="statActiveAccounts" class="text-xl sm:text-2xl font-bold text-brand-400 mt-1">0</h3>
-                </div>
-                <div class="bg-emerald-950/20 p-3 sm:p-4 rounded-xl border border-emerald-500/10">
-                    <p class="text-xs text-emerald-400 uppercase tracking-wider">DMs Sent</p>
-                    <h3 id="statDmedLeads" class="text-xl sm:text-2xl font-bold text-emerald-400 mt-1">0</h3>
-                </div>
-                <div class="bg-violet-950/20 p-3 sm:p-4 rounded-xl border border-violet-500/10">
-                    <p class="text-xs text-violet-400 uppercase tracking-wider">Replies</p>
-                    <h3 id="statRepliedLeads" class="text-xl sm:text-2xl font-bold text-violet-400 mt-1">0</h3>
-                </div>
+        <!-- Live indicator -->
+        <div class="flex items-center gap-2 px-2 py-1">
+            <div class="live-dot flex h-2 w-2 relative">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </div>
-
-            <!-- Campaign Controls -->
-            <div class="glass-panel p-5 rounded-2xl space-y-4">
-                <h2 class="text-md font-semibold text-white flex items-center">
-                    <i class="fa-solid fa-sliders text-brand-500 mr-2"></i> Campaign Config
-                </h2>
-                
-                <form id="settingsForm" onsubmit="saveSettings(event)" class="space-y-3 text-sm">
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">Campaign Title</label>
-                        <input type="text" id="campaignName" class="w-full bg-slate-900/60 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500" required>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">Max Daily Outreach Targets</label>
-                        <input type="number" id="maxLeads" class="w-full bg-slate-900/60 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500" required>
-                    </div>
-                    <div class="flex items-center justify-between py-2 border-t border-b border-white/5 my-2">
-                        <span class="text-xs text-slate-300">Human Warmup Acceleration</span>
-                        <input type="checkbox" id="warmupMode" class="w-4 h-4 rounded text-brand-500 focus:ring-brand-500">
-                    </div>
-                    <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2 rounded-lg transition duration-200">
-                        Update Global Rules
-                    </button>
-                </form>
-            </div>
-
-            <!-- Accounts Management -->
-            <div class="glass-panel p-5 rounded-2xl space-y-4">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-md font-semibold text-white flex items-center">
-                        <i class="fa-solid fa-users text-brand-500 mr-2"></i> IG profiles
-                    </h2>
-                    <button onclick="openModal('accountModal')" class="text-xs text-brand-400 hover:underline">
-                        <i class="fa-solid fa-plus"></i> Add Account
-                    </button>
-                </div>
-                <div id="accountsContainer" class="space-y-3 custom-scroll overflow-y-auto max-h-56">
-                    <!-- Dynamic rendering -->
-                </div>
-            </div>
-
+            <span class="text-[10px] text-emerald-400 font-medium">Engine Monitoring</span>
         </div>
 
-        <!-- Center Column: Leads CRM Manager & AI Writer -->
-        <div class="lg:col-span-2 flex flex-col space-y-6">
-            
-            <!-- Dynamic CRM Grid -->
-            <div class="glass-panel p-6 rounded-2xl flex flex-col flex-grow">
-                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-                    <div>
-                        <h2 class="text-base sm:text-lg font-semibold text-white">Leads CRM Database</h2>
-                        <p class="text-xs text-slate-400">Manage, import, and track outreach status of buyers</p>
+    </aside>
+
+    <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+    <main class="flex-1 overflow-y-auto">
+
+        <!-- Top bar -->
+        <header class="glass sticky top-0 z-30 px-6 py-3.5 flex items-center justify-between border-b border-blue-500/10">
+            <div>
+                <h2 id="pageTitle" class="text-white font-semibold text-base">Dashboard</h2>
+                <p id="pageSubtitle" class="text-[11px] text-slate-500">Outreach performance overview</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="glass-card px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs text-slate-400">
+                    <i class="fa-brands fa-instagram text-blue-400"></i>
+                    <span>B2B Core v2</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-6">
+
+            <!-- ═══ PAGE: DASHBOARD ═══ -->
+            <div id="page-dashboard" class="page active">
+
+                <!-- Stats -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="stat-card">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Total Leads</span>
+                            <div class="w-8 h-8 rounded-lg bg-blue-500/15 flex items-center justify-center">
+                                <i class="fa-solid fa-users text-blue-400 text-xs"></i>
+                            </div>
+                        </div>
+                        <h3 id="statTotalLeads" class="text-3xl font-bold text-white">0</h3>
+                        <p class="text-[10px] text-slate-500 mt-1">Imported profiles</p>
                     </div>
-                    <div class="flex space-x-2 shrink-0">
-                        <button onclick="openModal('leadModal')" class="bg-brand-600/20 text-brand-400 border border-brand-500/20 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-brand-600/30 transition">
-                            <i class="fa-solid fa-user-plus mr-1"></i> Add Target
+                    <div class="stat-card">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Active Bots</span>
+                            <div class="w-8 h-8 rounded-lg bg-sky-500/15 flex items-center justify-center">
+                                <i class="fa-solid fa-robot text-sky-400 text-xs"></i>
+                            </div>
+                        </div>
+                        <h3 id="statActiveAccounts" class="text-3xl font-bold text-sky-400">0</h3>
+                        <p class="text-[10px] text-slate-500 mt-1">Connected accounts</p>
+                    </div>
+                    <div class="stat-card">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-[10px] text-emerald-400/80 uppercase tracking-wider font-medium">DMs Sent</span>
+                            <div class="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                                <i class="fa-solid fa-paper-plane text-emerald-400 text-xs"></i>
+                            </div>
+                        </div>
+                        <h3 id="statDmedLeads" class="text-3xl font-bold text-emerald-400">0</h3>
+                        <p class="text-[10px] text-slate-500 mt-1">Outreach messages</p>
+                    </div>
+                    <div class="stat-card">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-[10px] text-violet-400/80 uppercase tracking-wider font-medium">Replies</span>
+                            <div class="w-8 h-8 rounded-lg bg-violet-500/15 flex items-center justify-center">
+                                <i class="fa-solid fa-reply text-violet-400 text-xs"></i>
+                            </div>
+                        </div>
+                        <h3 id="statRepliedLeads" class="text-3xl font-bold text-violet-400">0</h3>
+                        <p class="text-[10px] text-slate-500 mt-1">Responses received</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+                    <!-- IG Accounts panel -->
+                    <div class="glass rounded-2xl p-5 lg:col-span-1">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                                <i class="fa-brands fa-instagram text-blue-400"></i> IG Profiles
+                            </h3>
+                            <button onclick="openModal('accountModal')" class="text-[11px] text-blue-400 hover:text-blue-300 border border-blue-500/20 rounded-lg px-2.5 py-1 hover:border-blue-400/40 transition">
+                                <i class="fa-solid fa-plus mr-1"></i>Add Account
+                            </button>
+                        </div>
+                        <div id="accountsContainer" class="space-y-2.5 max-h-56 overflow-y-auto"></div>
+                    </div>
+
+                    <!-- Activity Terminal -->
+                    <div class="glass rounded-2xl p-5 lg:col-span-2 flex flex-col">
+                        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                <i class="fa-solid fa-terminal text-emerald-400"></i> Live Activity Stream
+            </h3>
+            <div class="flex items-center gap-3">
+                <button onclick="clearTerminalLogs()" class="text-[11px] bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-white/10 px-2 py-1 rounded transition select-none whitespace-nowrap">
+                    Clear Logs
+                </button>
+                <div class="flex h-2 w-2 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </div>
+            </div>
+        </div>
+                        <div id="terminalStream" class="flex-grow bg-black/40 rounded-xl p-3 border border-white/5 font-mono text-[11px] leading-relaxed overflow-y-auto h-48 space-y-1 text-emerald-300">
+                            <div>[SYSTEM] Pipeline initialization success. Monitoring outreach activities...</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ═══ PAGE: LEADS CRM ═══ -->
+            <div id="page-leads" class="page">
+
+                <!-- Toolbar -->
+                <div class="glass rounded-2xl p-4 mb-5 flex flex-wrap gap-3 items-center justify-between">
+                    <div class="flex flex-wrap gap-2 items-center flex-1">
+                        <div class="relative">
+                            <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                            <input id="searchLeads" type="text" placeholder="Search username..." oninput="filterLeads()" class="form-input pl-8 w-44" style="padding-left:32px">
+                        </div>
+                        <select id="filterStatus" onchange="filterLeads()" class="form-input" style="width:auto">
+                            <option value="">All Statuses</option>
+                            <option value="Pending">Pending</option>
+                            <option value="DMed">Outreach Sent</option>
+                            <option value="Replied">Replied</option>
+                            <option value="Failed">Failed</option>
+                        </select>
+                        <select id="filterNiche" onchange="filterLeads()" class="form-input" style="width:auto">
+                            <option value="">All Niches</option>
+                            <option value="Martial Arts">Martial Arts</option>
+                            <option value="Fashion Wear">Fashion Wear</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="exportCSV()" class="glass-card border border-blue-500/20 text-blue-400 hover:text-blue-300 px-3 py-2 rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-csv"></i> Export CSV
+                        </button>
+                        <button onclick="openModal('leadModal')" class="btn-primary text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                            <i class="fa-solid fa-user-plus"></i> Add Lead
                         </button>
                     </div>
                 </div>
 
-                <div class="overflow-x-auto flex-grow custom-scroll overflow-y-auto max-h-96 -mx-1 px-1">
-                    <table class="w-full min-w-[500px] text-left text-sm text-slate-300">
-                        <thead class="text-xs text-slate-400 uppercase bg-slate-900/60 sticky top-0">
-                            <tr>
-                                <th class="p-3">Target Profile</th>
-                                <th class="p-3">Niche Category</th>
-                                <th class="p-3">Outreach Status</th>
-                                <th class="p-3">Personalized Copy</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leadsTableBody">
-                            <!-- Dynamic Row Seeding -->
-                        </tbody>
-                    </table>
+                <!-- Leads Table -->
+                <div class="glass rounded-2xl overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="border-b border-white/5">
+                                    <th class="p-3.5 text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Target Profile</th>
+                                    <th class="p-3.5 text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Niche</th>
+                                    <th class="p-3.5 text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Status</th>
+                                    <th class="p-3.5 text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leadsTableBody" class="divide-y divide-white/[0.04]"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- AI Copywriter — in Leads page -->
+                <div class="glass rounded-2xl p-5 mt-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-wand-magic-sparkles text-blue-400"></i> AI Outreach Copywriter
+                            </h3>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Generate personalized pitches before execution · Groq Llama-3-8B</p>
+                        </div>
+                        <span class="text-[10px] bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2.5 py-1 rounded-lg font-mono">Llama-3-8B</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-[11px] text-slate-400 mb-1 block">Target Account</label>
+                                <input type="text" id="previewUsername" placeholder="e.g. apex_fight_gear" class="form-input">
+                            </div>
+                            <div>
+                                <label class="text-[11px] text-slate-400 mb-1 block">Brand Niche</label>
+                                <select id="previewNiche" class="form-input">
+                                    <option value="Martial Arts Gear">Martial Arts (Dojos, Uniforms, Gloves)</option>
+                                    <option value="Fashion Sportswear">Fashion Apparel (Tracksuits, Streetwear)</option>
+                                </select>
+                            </div>
+                            <button onclick="previewAICopy()" class="btn-primary w-full py-2.5 rounded-xl text-white text-xs font-semibold flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-spinner fa-spin hidden" id="previewSpinner"></i>
+                                <i class="fa-solid fa-bolt"></i>
+                                <span>Generate AI Pitch</span>
+                            </button>
+                        </div>
+                        <div class="glass-card rounded-xl p-4 space-y-3">
+                            <div>
+                                <span class="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-mono uppercase tracking-wider">DM Preview</span>
+                                <p id="previewDmResult" class="text-xs text-slate-400 italic mt-2 leading-relaxed">No output yet. Enter parameters above.</p>
+                            </div>
+                            <div class="border-t border-white/5 pt-3">
+                                <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-mono uppercase tracking-wider">Comment Preview</span>
+                                <p id="previewCommentResult" class="text-xs text-slate-400 italic mt-2">No comment generated.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Custom AI Writing Playbook (Groq Engine) -->
-            <div class="glass-panel p-4 sm:p-6 rounded-2xl space-y-4">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h2 class="text-md font-semibold text-white flex items-center">
-                            <i class="fa-solid fa-wand-magic-sparkles text-brand-400 mr-2"></i> Groq Realtime B2B Copywriter
-                        </h2>
-                        <p class="text-xs text-slate-400">Generate high-impact pitches and support comments before execution</p>
-                    </div>
-                    <span class="text-xs bg-slate-900 border border-white/5 text-slate-400 px-3 py-1 rounded-md">Llama-3-8B</span>
-                </div>
+            <!-- ═══ PAGE: ANALYTICS ═══ -->
+            <div id="page-analytics" class="page">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="space-y-3 text-sm">
-                        <div>
-                            <label class="block text-xs text-slate-400 mb-1">Target Account Name</label>
-                            <input type="text" id="previewUsername" placeholder="e.g. apex_fight_gear" class="w-full bg-slate-900/60 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-slate-400 mb-1">Brand Niche Focus</label>
-                            <select id="previewNiche" class="w-full bg-slate-900/60 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500">
-                                <option value="Martial Arts Gear">Martial Arts (Dojos, Uniforms, Gloves)</option>
-                                <option value="Fashion Sportswear">Fashion Apparel (Tracksuits, Streetwear)</option>
-                            </select>
-                        </div>
-                        <button onclick="previewAICopy()" class="w-full bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white font-medium py-2 rounded-lg transition duration-200 flex items-center justify-center space-x-2">
-                            <i class="fa-solid fa-spinner fa-spin hidden" id="previewSpinner"></i>
-                            <span>Formulate AI Outreach Pitch</span>
+                    <!-- Reply rate chart -->
+                    <div class="glass rounded-2xl p-5">
+                        <h3 class="text-sm font-semibold text-white mb-1">Outreach Funnel</h3>
+                        <p class="text-[11px] text-slate-500 mb-5">Conversion at each stage</p>
+                        <div id="funnelChart" class="space-y-3"></div>
+                    </div>
+
+                    <!-- Bar chart mock -->
+                    <div class="glass rounded-2xl p-5">
+                        <h3 class="text-sm font-semibold text-white mb-1">Daily DMs Sent</h3>
+                        <p class="text-[11px] text-slate-500 mb-5">Last 7 days activity</p>
+                        <div class="flex items-end justify-between gap-2 h-32" id="barChart"></div>
+                        <div class="flex justify-between mt-2" id="barLabels"></div>
+                    </div>
+
+                    <!-- Niche breakdown -->
+                    <div class="glass rounded-2xl p-5">
+                        <h3 class="text-sm font-semibold text-white mb-1">Leads by Niche</h3>
+                        <p class="text-[11px] text-slate-500 mb-4">Distribution across categories</p>
+                        <div id="nicheBreakdown" class="space-y-2.5"></div>
+                    </div>
+
+                    <!-- Status breakdown -->
+                    <div class="glass rounded-2xl p-5">
+                        <h3 class="text-sm font-semibold text-white mb-1">Status Distribution</h3>
+                        <p class="text-[11px] text-slate-500 mb-4">Pipeline health snapshot</p>
+                        <div id="statusBreakdown" class="space-y-2.5"></div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ═══ PAGE: CAMPAIGNS ═══ -->
+            <div id="page-campaigns" class="page">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+                    <div class="glass rounded-2xl p-5 space-y-4">
+                        <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-rocket text-blue-400"></i> Campaign Config
+                        </h3>
+                        <form id="settingsForm" onsubmit="saveSettings(event)" class="space-y-3">
+                            <div>
+                                <label class="text-[11px] text-slate-400 mb-1 block">Campaign Title</label>
+                                <input type="text" id="campaignName" class="form-input" required>
+                            </div>
+                            <div>
+                                <label class="text-[11px] text-slate-400 mb-1 block">Max Daily Outreach Targets</label>
+                                <input type="number" id="maxLeads" class="form-input" required>
+                            </div>
+                            <div class="flex items-center justify-between py-3 border-t border-b border-white/5">
+                                <div>
+                                    <p class="text-xs text-slate-300 font-medium">Human Warmup Mode</p>
+                                    <p class="text-[10px] text-slate-500">Gradually ramp up activity to avoid detection</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="warmupMode">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <button type="submit" class="btn-primary w-full py-2.5 rounded-xl text-white text-xs font-semibold">
+                                Save Campaign Settings
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="glass rounded-2xl p-5 flex flex-col">
+                        <h3 class="text-sm font-semibold text-white flex items-center gap-2 mb-4">
+                            <i class="fa-brands fa-instagram text-blue-400"></i> Connected IG Accounts
+                        </h3>
+                        <div id="accountsContainerCampaigns" class="space-y-2.5 flex-1 overflow-y-auto max-h-72"></div>
+                        <button onclick="openModal('accountModal')" class="btn-primary mt-4 w-full py-2.5 rounded-xl text-white text-xs font-semibold flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Link New Account
                         </button>
                     </div>
 
-                    <div class="bg-slate-950/80 p-4 rounded-xl border border-white/5 space-y-3 flex flex-col justify-between">
-                        <div>
-                            <span class="text-xs bg-brand-500/20 text-brand-300 px-2 py-0.5 rounded font-mono">DMs OUTBOX PREVIEW:</span>
-                            <p id="previewDmResult" class="text-xs text-slate-300 italic mt-2 leading-relaxed">No output generated yet. Enter parameters and click formulate.</p>
+                </div>
+            </div>
+
+            <!-- ═══ PAGE: SETTINGS ═══ -->
+            <div id="page-settings" class="page">
+                <div class="max-w-xl">
+                    <div class="glass rounded-2xl p-5 space-y-4">
+                        <h3 class="text-sm font-semibold text-white flex items-center gap-2 mb-2">
+                            <i class="fa-solid fa-sliders text-blue-400"></i> Global Settings
+                        </h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-[11px] text-slate-400 mb-1 block">Campaign Name</label>
+                                <input type="text" id="settingsCampaignName" class="form-input" placeholder="e.g. Apex B2B Outreach Q3">
+                            </div>
+                            <div>
+                                <label class="text-[11px] text-slate-400 mb-1 block">Max Leads Per Day</label>
+                                <input type="number" id="settingsMaxLeads" class="form-input" placeholder="30">
+                            </div>
+                            <div class="flex items-center justify-between py-3 border-t border-b border-white/5">
+                                <div>
+                                    <p class="text-xs text-slate-300 font-medium">Safety Warmup Mode</p>
+                                    <p class="text-[10px] text-slate-500">Simulate human-like activity patterns</p>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="settingsWarmup">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
                         </div>
-                        <div class="border-t border-white/5 pt-2">
-                            <span class="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-mono">CONTEXTUAL COMMENT PREVIEW:</span>
-                            <p id="previewCommentResult" class="text-xs text-slate-300 italic mt-2">No comment formulated.</p>
-                        </div>
+                        <button onclick="saveSettingsFromPage()" class="btn-primary w-full py-2.5 rounded-xl text-white text-xs font-semibold">
+                            Save Settings
+                        </button>
                     </div>
                 </div>
             </div>
 
-        </div>
-
-        <!-- Right Column: Micro Live Activity Stream & Realtime Engine terminal -->
-        <div class="lg:col-span-1 flex flex-col space-y-6">
-            
-            <!-- Dynamic Actions Logger -->
-            <div class="glass-panel p-5 rounded-2xl flex flex-col flex-grow min-h-96 lg:min-h-0">
-                <div class="flex items-center justify-between mb-3">
-                <h2 class="text-md font-semibold text-white flex items-center">
-                    <i class="fa-solid fa-terminal text-emerald-400 mr-2"></i> Live Activity Engine
-                </h2>
-                <div class="flex items-center space-x-3">
-                    <button onclick="clearTerminalLogs()" class="text-[11px] bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-white/10 px-2 py-1 rounded transition select-none">
-                        Clear Logs
-                    </button>
-                    <span class="flex h-2 w-2 relative">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                </div>
-            </div>
-                
-                <!-- Terminal Screen -->
-                <div id="terminalStream" class="flex-grow bg-slate-950/90 rounded-xl p-3 border border-white/5 font-mono text-[11px] leading-relaxed custom-scroll overflow-y-auto space-y-2 h-64 sm:h-96 lg:h-48 text-emerald-300">
-                    <div>[SYSTEM] Pipeline initialization success. Monitoring outreach activities...</div>
-                </div>
-            </div>
-
-        </div>
-
+        </div><!-- /p-6 -->
     </main>
+</div>
 
-    <!-- Account Addition Modal -->
-    <div id="accountModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-        <div class="glass-panel p-5 sm:p-6 rounded-2xl w-full max-w-md space-y-4">
-            <div class="flex justify-between items-center border-b border-white/5 pb-3">
-                <h3 class="text-md font-bold text-white">Integrate New IG Outreach Account</h3>
-                <button onclick="closeModal('accountModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+<!-- ═══════════════ MODALS ═══════════════ -->
+
+<!-- Account Modal -->
+<div id="accountModal" class="fixed inset-0 modal-bg hidden items-center justify-center z-50">
+    <div class="glass-bright rounded-2xl p-6 w-full max-w-md mx-4 border border-blue-500/20">
+        <div class="flex justify-between items-center mb-5">
+            <div>
+                <h3 class="text-sm font-bold text-white">Link Instagram Account</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">Connect an IG profile to the outreach engine</p>
             </div>
-            <form onsubmit="submitAccount(event)" class="space-y-4 text-sm">
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Username / ID</label>
-                    <input type="text" id="accUser" class="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500" required>
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Account Secret Password</label>
-                    <input type="password" id="accPass" class="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500" required>
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Outreach Proxy (Residential/Mobile)</label>
-                    <input type="text" id="accProxy" placeholder="e.g. http://username:password@ip:port" class="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500">
-                </div>
-                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2 rounded-lg transition">
-                    Configure Profile Session
-                </button>
-            </form>
+            <button onclick="closeModal('accountModal')" class="text-slate-500 hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="space-y-3">
+            <div>
+                <label class="text-[11px] text-slate-400 mb-1 block">Username</label>
+                <input type="text" id="accUser" class="form-input" placeholder="@your_ig_handle">
+            </div>
+            <div>
+                <label class="text-[11px] text-slate-400 mb-1 block">Password</label>
+                <input type="password" id="accPass" class="form-input" placeholder="••••••••">
+            </div>
+            <div>
+                <label class="text-[11px] text-slate-400 mb-1 block">Proxy (optional)</label>
+                <input type="text" id="accProxy" class="form-input" placeholder="http://user:pass@ip:port">
+            </div>
+            <button onclick="submitAccountBtn()" class="btn-primary w-full py-2.5 rounded-xl text-white text-xs font-semibold mt-2">
+                Connect Account
+            </button>
         </div>
     </div>
+</div>
 
-    <!-- Lead Input Modal -->
-    <div id="leadModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-        <div class="glass-panel p-5 sm:p-6 rounded-2xl w-full max-w-md space-y-4">
-            <div class="flex justify-between items-center border-b border-white/5 pb-3">
-                <h3 class="text-md font-bold text-white">Import High-Value Lead</h3>
-                <button onclick="closeModal('leadModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+<!-- Lead Modal -->
+<div id="leadModal" class="fixed inset-0 modal-bg hidden items-center justify-center z-50">
+    <div class="glass-bright rounded-2xl p-6 w-full max-w-md mx-4 border border-blue-500/20">
+        <div class="flex justify-between items-center mb-5">
+            <div>
+                <h3 class="text-sm font-bold text-white">Import Lead</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">Add a high-value target to the CRM</p>
             </div>
-            <form onsubmit="submitLead(event)" class="space-y-4 text-sm">
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Lead Instagram Username</label>
-                    <input type="text" id="leadUser" placeholder="e.g. dynamic_martial_arts" class="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500" required>
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Business Target Niche</label>
-                    <select id="leadNiche" class="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500">
-                        <option value="Martial Arts">Martial Arts (Gear/Uniforms)</option>
-                        <option value="Fashion Wear">Fashion Wear (Custom Apparel)</option>
-                    </select>
-                </div>
-                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2 rounded-lg transition">
-                    Inject to Campaign CRM
-                </button>
-            </form>
+            <button onclick="closeModal('leadModal')" class="text-slate-500 hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="space-y-3">
+            <div>
+                <label class="text-[11px] text-slate-400 mb-1 block">Instagram Username</label>
+                <input type="text" id="leadUser" class="form-input" placeholder="e.g. dynamic_martial_arts">
+            </div>
+            <div>
+                <label class="text-[11px] text-slate-400 mb-1 block">Business Niche</label>
+                <select id="leadNiche" class="form-input">
+                    <option value="Martial Arts">Martial Arts (Gear / Uniforms)</option>
+                    <option value="Fashion Wear">Fashion Wear (Custom Apparel)</option>
+                </select>
+            </div>
+            <button onclick="submitLeadBtn()" class="btn-primary w-full py-2.5 rounded-xl text-white text-xs font-semibold mt-2">
+                Add to CRM
+            </button>
         </div>
     </div>
+</div>
 
     <script>
         function clearTerminalLogs() {
@@ -322,6 +701,458 @@
     </script>
 
     <!-- JS Control Logic File Link -->
-    <script src="js/app.js"></script>
+   
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 right-6 z-50 hidden">
+    <div class="glass-bright border border-blue-500/30 rounded-xl px-4 py-3 flex items-center gap-3 shadow-xl shadow-blue-900/30">
+        <i id="toastIcon" class="fa-solid fa-check-circle text-emerald-400"></i>
+        <span id="toastMsg" class="text-sm text-white font-medium"></span>
+    </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+// ═══ NAVIGATION ═══
+const pageMeta = {
+    dashboard:  { title: 'Dashboard',   subtitle: 'Outreach performance overview' },
+    leads:      { title: 'Leads CRM',   subtitle: 'Manage and track your outreach targets' },
+    analytics:  { title: 'Analytics',   subtitle: 'Charts and performance insights' },
+    campaigns:  { title: 'Campaigns',   subtitle: 'Configure and control outreach campaigns' },
+    settings:   { title: 'Settings',    subtitle: 'Global platform configuration' },
+};
+
+function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => {
+        if (n.getAttribute('onclick') === `showPage('${name}')`) n.classList.add('active');
+    });
+    document.getElementById('pageTitle').textContent = pageMeta[name].title;
+    document.getElementById('pageSubtitle').textContent = pageMeta[name].subtitle;
+
+    if (name === 'analytics') renderAnalytics();
+    if (name === 'campaigns') renderCampaignAccounts();
+}
+
+// ═══ TOAST ═══
+function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    const icon = document.getElementById('toastIcon');
+    icon.className = type === 'error'
+        ? 'fa-solid fa-circle-exclamation text-rose-400'
+        : 'fa-solid fa-check-circle text-emerald-400';
+    t.classList.remove('hidden');
+    setTimeout(() => t.classList.add('hidden'), 3000);
+}
+
+// ═══ MODAL HELPERS ═══
+function openModal(id)  { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
+function closeModal(id) { document.getElementById(id).classList.remove('flex'); document.getElementById(id).classList.add('hidden'); }
+
+// ═══ API BASE ═══
+const API_BASE = "http://localhost:8000/api";
+
+// ═══ FETCH STATS ═══
+async function fetchStats() {
+    try {
+        const res = await fetch(`${API_BASE}/dashboard/stats`);
+        const stats = await res.json();
+        document.getElementById("statTotalLeads").innerText     = stats.total_leads;
+        document.getElementById("statActiveAccounts").innerText = stats.active_accounts;
+        document.getElementById("statDmedLeads").innerText      = stats.dmed_leads;
+        document.getElementById("statRepliedLeads").innerText   = stats.replied_leads;
+
+        const btn  = document.getElementById("toggleCampaignBtn");
+        const icon = document.getElementById("toggleIcon");
+        const txt  = document.getElementById("toggleText");
+        if (stats.campaign_running) {
+            btn.style.background = 'linear-gradient(135deg,#dc2626,#b91c1c)';
+            icon.className = 'fa-solid fa-pause';
+            txt.textContent = 'Pause Campaign';
+        } else {
+            btn.style.background = '';
+            icon.className = 'fa-solid fa-play';
+            txt.textContent = 'Launch Automation';
+        }
+    } catch(e) { console.error(e); }
+}
+
+// ═══ FETCH ACCOUNTS (dashboard) ═══
+async function fetchAccounts() {
+    try {
+        const res      = await fetch(`${API_BASE}/accounts`);
+        const accounts = await res.json();
+        renderAccounts(accounts, 'accountsContainer');
+    } catch(e) { console.error(e); }
+}
+
+function renderAccounts(accounts, containerId) {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+    c.innerHTML = '';
+    accounts.forEach(acc => {
+        const badgeClass = acc.status === 'Active'
+            ? 'bg-emerald-500/15 text-emerald-400'
+            : 'bg-amber-500/15 text-amber-400';
+        const div = document.createElement('div');
+        div.className = 'glass-card rounded-xl p-3 flex justify-between items-center text-xs';
+        div.innerHTML = `
+            <div class="space-y-0.5">
+                <p class="font-medium text-white flex items-center gap-1.5">
+                    <i class="fa-brands fa-instagram text-blue-400 text-xs"></i> @${acc.username}
+                </p>
+                <p class="text-[10px] text-slate-500">Proxy: ${acc.proxy ? acc.proxy.split('@')[1] || acc.proxy : 'Direct'}</p>
+            </div>
+            <div class="text-right space-y-1">
+                <span class="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase ${badgeClass}">${acc.status}</span>
+                <p class="text-[9px] text-slate-500">DM:${acc.daily_actions?.dm||0} Lk:${acc.daily_actions?.like||0}</p>
+            </div>`;
+        c.appendChild(div);
+    });
+}
+
+function renderCampaignAccounts() {
+    fetch(`${API_BASE}/accounts`)
+        .then(r => r.json())
+        .then(accounts => renderAccounts(accounts, 'accountsContainerCampaigns'))
+        .catch(e => console.error(e));
+}
+
+// ═══ FETCH LEADS ═══
+let allLeads = [];
+async function fetchLeads() {
+    try {
+        const res   = await fetch(`${API_BASE}/leads`);
+        const leads = await res.json();
+        allLeads    = leads;
+        renderLeads(leads);
+    } catch(e) { console.error(e); }
+}
+
+function renderLeads(leads) {
+    const body = document.getElementById('leadsTableBody');
+    body.innerHTML = '';
+    leads.forEach(lead => {
+        const cleanUser = lead.username.replace(/^@+/, '');
+        const statusMap = {
+            Pending: '<span class="badge-pending px-2 py-0.5 rounded text-[10px] font-mono uppercase">Pending</span>',
+            DMed:    '<span class="badge-dmed px-2 py-0.5 rounded text-[10px] font-mono uppercase">Sent</span>',
+            Replied: '<span class="badge-replied px-2 py-0.5 rounded text-[10px] font-mono uppercase">Replied</span>',
+            Failed:  '<span class="badge-failed px-2 py-0.5 rounded text-[10px] font-mono uppercase">Failed</span>',
+        };
+        const badge = statusMap[lead.status] || `<span class="px-2 py-0.5 rounded text-[10px] font-mono">${lead.status}</span>`;
+        const tr = document.createElement('tr');
+        tr.className = 'leads-row transition';
+        tr.innerHTML = `
+            <td class="p-3.5 text-white font-medium text-xs">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-full bg-blue-500/15 flex items-center justify-center flex-shrink-0">
+                        <i class="fa-brands fa-instagram text-blue-400 text-[11px]"></i>
+                    </div>
+                    <div>
+                        <p class="font-semibold">@${cleanUser}</p>
+                        <p class="text-[10px] text-slate-500">${lead.niche}</p>
+                    </div>
+                    <a href="https://www.instagram.com/${cleanUser}/" target="_blank" class="text-slate-600 hover:text-blue-400 transition ml-1">
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    </a>
+                </div>
+            </td>
+            <td class="p-3.5 text-slate-400 text-xs">${lead.niche}</td>
+            <td class="p-3.5">
+                <select onchange="updateLeadStatus('${lead._id}', this.value)"
+                    class="bg-transparent border border-white/10 text-xs rounded-lg px-2 py-1 text-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer">
+                    <option value="Pending"  ${lead.status==='Pending'  ? 'selected':''}>Pending</option>
+                    <option value="DMed"     ${lead.status==='DMed'     ? 'selected':''}>Sent</option>
+                    <option value="Replied"  ${lead.status==='Replied'  ? 'selected':''}>Replied</option>
+                    <option value="Failed"   ${lead.status==='Failed'   ? 'selected':''}>Failed</option>
+                </select>
+            </td>
+            <td class="p-3.5">
+                <button onclick="copyPitchToClipboard('${cleanUser}','${lead.niche}')"
+                    class="glass-card border border-blue-500/15 text-blue-400 hover:text-blue-300 px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1.5 transition">
+                    <i class="fa-regular fa-copy"></i> Copy Pitch
+                </button>
+            </td>`;
+        body.appendChild(tr);
+    });
+}
+
+// ═══ FILTER LEADS ═══
+function filterLeads() {
+    const search = document.getElementById('searchLeads').value.toLowerCase();
+    const status = document.getElementById('filterStatus').value;
+    const niche  = document.getElementById('filterNiche').value;
+    const filtered = allLeads.filter(l => {
+        const user = l.username.toLowerCase();
+        return (!search || user.includes(search))
+            && (!status || l.status === status)
+            && (!niche  || l.niche  === niche);
+    });
+    renderLeads(filtered);
+}
+
+// ═══ EXPORT CSV ═══
+function exportCSV() {
+    const header = 'username,niche,status';
+    const rows   = allLeads.map(l => `${l.username},${l.niche},${l.status}`);
+    const csv    = [header, ...rows].join('\n');
+    const blob   = new Blob([csv], { type: 'text/csv' });
+    const url    = URL.createObjectURL(blob);
+    const a      = document.createElement('a');
+    a.href = url; a.download = 'apex-connect-leads.csv'; a.click();
+    showToast('Leads exported as CSV');
+}
+
+// ═══ UPDATE LEAD STATUS ═══
+async function updateLeadStatus(id, newStatus) {
+    try {
+        await fetch(`${API_BASE}/leads/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lead_id: id, status: newStatus })
+        });
+        fetchStats();
+    } catch(e) { console.error(e); }
+}
+
+// ═══ COPY PITCH ═══
+async function copyPitchToClipboard(username, niche) {
+    try {
+        const res  = await fetch(`${API_BASE}/ai/preview`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, niche })
+        });
+        const data = await res.json();
+        await navigator.clipboard.writeText(data.dm);
+        showToast(`Pitch for @${username} copied!`);
+    } catch(e) {
+        showToast('Failed — check your Groq API key', 'error');
+    }
+}
+
+// ═══ FETCH SETTINGS ═══
+async function fetchSettings() {
+    try {
+        const res    = await fetch(`${API_BASE}/settings`);
+        const config = await res.json();
+        const cn = config.campaign_name    || '';
+        const ml = config.max_leads_per_day || 30;
+        const wm = config.safety_warmup_mode || false;
+        ['campaignName','settingsCampaignName'].forEach(id => { const el = document.getElementById(id); if(el) el.value = cn; });
+        ['maxLeads','settingsMaxLeads'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ml; });
+        ['warmupMode','settingsWarmup'].forEach(id => { const el = document.getElementById(id); if(el) el.checked = wm; });
+    } catch(e) { console.error(e); }
+}
+
+// ═══ SAVE SETTINGS ═══
+async function saveSettings(e) {
+    e.preventDefault();
+    const campaign_name      = document.getElementById('campaignName').value;
+    const max_leads_per_day  = parseInt(document.getElementById('maxLeads').value);
+    const safety_warmup_mode = document.getElementById('warmupMode').checked;
+    try {
+        await fetch(`${API_BASE}/settings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ campaign_name, max_leads_per_day, safety_warmup_mode, dm_template:'', comment_template:'' })
+        });
+        showToast('Campaign settings saved');
+        fetchStats();
+    } catch(e) { console.error(e); }
+}
+
+async function saveSettingsFromPage() {
+    const campaign_name      = document.getElementById('settingsCampaignName').value;
+    const max_leads_per_day  = parseInt(document.getElementById('settingsMaxLeads').value);
+    const safety_warmup_mode = document.getElementById('settingsWarmup').checked;
+    try {
+        await fetch(`${API_BASE}/settings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ campaign_name, max_leads_per_day, safety_warmup_mode, dm_template:'', comment_template:'' })
+        });
+        showToast('Settings saved');
+        fetchStats();
+    } catch(e) { console.error(e); }
+}
+
+// ═══ SUBMIT ACCOUNT ═══
+async function submitAccountBtn() {
+    const username = document.getElementById('accUser').value;
+    const password = document.getElementById('accPass').value;
+    const proxy    = document.getElementById('accProxy').value;
+    try {
+        const res = await fetch(`${API_BASE}/accounts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, proxy })
+        });
+        if (res.ok) {
+            closeModal('accountModal');
+            ['accUser','accPass','accProxy'].forEach(id => document.getElementById(id).value = '');
+            fetchAccounts(); fetchStats();
+            showToast('Account linked successfully');
+        } else {
+            showToast('Error linking account', 'error');
+        }
+    } catch(e) { console.error(e); }
+}
+
+// ═══ SUBMIT LEAD ═══
+async function submitLeadBtn() {
+    const username = document.getElementById('leadUser').value;
+    const niche    = document.getElementById('leadNiche').value;
+    try {
+        const res = await fetch(`${API_BASE}/leads`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, niche })
+        });
+        if (res.ok) {
+            closeModal('leadModal');
+            document.getElementById('leadUser').value = '';
+            fetchLeads(); fetchStats();
+            showToast('Lead added to CRM');
+        } else {
+            showToast('Lead already exists in CRM', 'error');
+        }
+    } catch(e) { console.error(e); }
+}
+
+// ═══ AI PREVIEW ═══
+async function previewAICopy() {
+    const username = document.getElementById('previewUsername').value;
+    const niche    = document.getElementById('previewNiche').value;
+    const spinner  = document.getElementById('previewSpinner');
+    if (!username) { showToast('Enter a target account name', 'error'); return; }
+    spinner.classList.remove('hidden');
+    try {
+        const res  = await fetch(`${API_BASE}/ai/preview`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, niche })
+        });
+        const data = await res.json();
+        document.getElementById('previewDmResult').innerText      = data.dm;
+        document.getElementById('previewCommentResult').innerText  = data.comment;
+    } catch(e) { console.error(e); } finally { spinner.classList.add('hidden'); }
+}
+
+// ═══ TOGGLE CAMPAIGN ═══
+async function toggleCampaign() {
+    try {
+        await fetch(`${API_BASE}/campaign/toggle`, { method: 'POST' });
+        fetchStats();
+    } catch(e) { console.error(e); }
+}
+
+// ═══ LOG STREAM ═══
+function initializeLogStream() {
+    const terminal = document.getElementById('terminalStream');
+    const source   = new EventSource(`${API_BASE}/logs/stream`);
+    source.onmessage = (event) => {
+        const log = JSON.parse(event.data);
+        const div = document.createElement('div');
+        let cc = 'text-slate-300';
+        if (log.level === 'SUCCESS') cc = 'text-emerald-400';
+        else if (log.level === 'WARNING') cc = 'text-amber-400';
+        else if (log.level === 'ERROR')   cc = 'text-rose-400';
+        div.className = cc;
+        div.innerHTML = `[${new Date(log.timestamp).toLocaleTimeString()}] [${log.level}] ${log.message}`;
+        terminal.appendChild(div);
+        terminal.scrollTop = terminal.scrollHeight;
+    };
+    source.onerror = () => console.warn('SSE disconnected. Retrying...');
+}
+
+// ═══ ANALYTICS ═══
+function renderAnalytics() {
+    const total   = parseInt(document.getElementById('statTotalLeads').innerText)  || 0;
+    const dmed    = parseInt(document.getElementById('statDmedLeads').innerText)   || 0;
+    const replied = parseInt(document.getElementById('statRepliedLeads').innerText)|| 0;
+
+    // Funnel
+    const funnelEl = document.getElementById('funnelChart');
+    funnelEl.innerHTML = '';
+    const funnelData = [
+        { label: 'Total Leads', value: total, color: 'bg-blue-500' },
+        { label: 'DMs Sent',    value: dmed,  color: 'bg-sky-400' },
+        { label: 'Replies',     value: replied,color: 'bg-violet-400' },
+    ];
+    funnelData.forEach(f => {
+        const pct = total > 0 ? Math.round((f.value / total) * 100) : 0;
+        funnelEl.innerHTML += `
+            <div class="ana-row">
+                <span class="text-[11px] text-slate-400 w-24 flex-shrink-0">${f.label}</span>
+                <div class="ana-bar-wrap"><div class="ana-bar ${f.color}" style="width:${pct}%"></div></div>
+                <span class="text-[11px] text-white font-semibold w-8 text-right">${f.value}</span>
+                <span class="text-[10px] text-slate-500 w-8">${pct}%</span>
+            </div>`;
+    });
+
+    // Bar chart mock (simulated daily data)
+    const days   = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const values = [8, 12, 7, 15, 10, 6, dmed || 4];
+    const maxV   = Math.max(...values, 1);
+    const barEl  = document.getElementById('barChart');
+    const labEl  = document.getElementById('barLabels');
+    barEl.innerHTML = ''; labEl.innerHTML = '';
+    values.forEach((v, i) => {
+        const h = Math.round((v / maxV) * 100);
+        barEl.innerHTML  += `<div class="flex-1 flex flex-col items-center justify-end">
+            <span class="text-[10px] text-slate-500 mb-1">${v}</span>
+            <div class="chart-bar w-full" style="height:${h}%"></div>
+        </div>`;
+        labEl.innerHTML  += `<span class="flex-1 text-center text-[10px] text-slate-500">${days[i]}</span>`;
+    });
+
+    // Niche breakdown
+    const nicheEl = document.getElementById('nicheBreakdown');
+    const niches  = {};
+    allLeads.forEach(l => { niches[l.niche] = (niches[l.niche] || 0) + 1; });
+    nicheEl.innerHTML = '';
+    Object.entries(niches).forEach(([n, c]) => {
+        const pct = total > 0 ? Math.round((c / total) * 100) : 0;
+        nicheEl.innerHTML += `
+            <div class="ana-row">
+                <span class="text-[11px] text-slate-400 w-32 flex-shrink-0">${n}</span>
+                <div class="ana-bar-wrap"><div class="ana-bar" style="width:${pct}%"></div></div>
+                <span class="text-[11px] text-white font-semibold w-6 text-right">${c}</span>
+            </div>`;
+    });
+    if (!Object.keys(niches).length) nicheEl.innerHTML = '<p class="text-xs text-slate-500 italic">No leads yet</p>';
+
+    // Status breakdown
+    const statEl   = document.getElementById('statusBreakdown');
+    const statuses = {};
+    allLeads.forEach(l => { statuses[l.status] = (statuses[l.status] || 0) + 1; });
+    const sColors  = { Pending: '#3b82f6', DMed: '#34d399', Replied: '#a78bfa', Failed: '#f87171' };
+    statEl.innerHTML = '';
+    Object.entries(statuses).forEach(([s, c]) => {
+        const pct = total > 0 ? Math.round((c / total) * 100) : 0;
+        const col = sColors[s] || '#64748b';
+        statEl.innerHTML += `
+            <div class="ana-row">
+                <span class="text-[11px] text-slate-400 w-24 flex-shrink-0">${s}</span>
+                <div class="ana-bar-wrap"><div class="ana-bar" style="width:${pct}%;background:${col}"></div></div>
+                <span class="text-[11px] text-white font-semibold w-6 text-right">${c}</span>
+            </div>`;
+    });
+    if (!Object.keys(statuses).length) statEl.innerHTML = '<p class="text-xs text-slate-500 italic">No leads yet</p>';
+}
+
+// ═══ INIT ═══
+document.addEventListener('DOMContentLoaded', () => {
+    fetchStats();
+    fetchAccounts();
+    fetchLeads();
+    fetchSettings();
+    initializeLogStream();
+});
+</script>
 </body>
 </html>
