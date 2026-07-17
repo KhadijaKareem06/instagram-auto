@@ -3,6 +3,7 @@ import logging
 from groq import Groq
 from backend.app.config import settings
 
+
 logger = logging.getLogger("ai_service")
 
 class AIService:

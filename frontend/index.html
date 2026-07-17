@@ -431,6 +431,9 @@
                         </select>
                     </div>
                     <div class="flex gap-2">
+                        <button onclick="openSendQueue()" id="sendQueueBtn" class="glass-card border border-emerald-500/20 text-emerald-400 hover:text-emerald-300 px-3 py-2 rounded-lg text-xs font-medium transition flex items-center gap-1.5" disabled style="opacity:0.4;cursor:not-allowed">
+                            <i class="fa-solid fa-list-check"></i> Send Queue (<span id="queueCount">0</span>)
+                        </button>
                         <button onclick="exportCSV()" class="glass-card border border-blue-500/20 text-blue-400 hover:text-blue-300 px-3 py-2 rounded-lg text-xs font-medium transition flex items-center gap-1.5">
                             <i class="fa-solid fa-file-csv"></i> Export CSV
                         </button>
@@ -446,6 +449,7 @@
                         <table class="w-full text-left text-sm">
                             <thead>
                                 <tr class="border-b border-white/5">
+                                    <th class="p-3.5 w-8"><input type="checkbox" id="selectAllLeads" onchange="toggleSelectAllLeads(this.checked)" class="accent-blue-500 cursor-pointer"></th>
                                     <th class="p-3.5 text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Target Profile</th>
                                     <th class="p-3.5 text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Niche</th>
                                     <th class="p-3.5 text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Status</th>
@@ -686,6 +690,26 @@
     </div>
 </div>
 
+<!-- Send Queue Modal -->
+<div id="queueModal" class="fixed inset-0 modal-bg hidden items-center justify-center z-50">
+    <div class="glass-bright rounded-2xl p-6 w-full max-w-lg mx-4 border border-emerald-500/20 max-h-[85vh] flex flex-col">
+        <div class="flex justify-between items-center mb-2">
+            <div>
+                <h3 class="text-sm font-bold text-white">Send Queue</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">Work through your selected leads one at a time — copy, paste, send.</p>
+            </div>
+            <button onclick="closeModal('queueModal')" class="text-slate-500 hover:text-white w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="text-[10px] text-amber-400/80 bg-amber-500/5 border border-amber-500/15 rounded-lg px-3 py-2 mb-3 flex items-start gap-2">
+            <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+            <span>Each pitch still needs to be pasted and sent by you inside Instagram. A short cooldown between leads keeps your sending pattern human-paced.</span>
+        </div>
+        <div id="queueList" class="space-y-2 overflow-y-auto flex-1 pr-1"></div>
+    </div>
+</div>
+
 <!-- Toast -->
 <div id="toast" class="fixed bottom-6 right-6 z-50 hidden">
     <div class="glass-bright border border-blue-500/30 rounded-xl px-4 py-3 flex items-center gap-3 shadow-xl shadow-blue-900/30">
@@ -830,6 +854,11 @@ function renderLeads(leads) {
         const tr = document.createElement('tr');
         tr.className = 'leads-row transition';
         tr.innerHTML = `
+            <td class="p-3.5">
+                <input type="checkbox" class="lead-select-checkbox accent-blue-500 cursor-pointer"
+                    ${selectedLeadIds.has(lead._id) ? 'checked' : ''}
+                    onchange="toggleLeadSelect('${lead._id}', this.checked)">
+            </td>
             <td class="p-3.5 text-white font-medium text-xs">
                 <div class="flex items-center gap-2">
                     <div class="w-7 h-7 rounded-full bg-blue-500/15 flex items-center justify-center flex-shrink-0">
@@ -855,7 +884,7 @@ function renderLeads(leads) {
                 </select>
             </td>
             <td class="p-3.5">
-                <button onclick="copyPitchToClipboard('${cleanUser}','${lead.niche}')"
+                <button onclick="copyPitchToClipboard('${cleanUser}', '${lead.niche}', event)"
                     class="glass-card border border-blue-500/15 text-blue-400 hover:text-blue-300 px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1.5 transition">
                     <i class="fa-regular fa-copy"></i> Copy Pitch
                 </button>
@@ -863,6 +892,176 @@ function renderLeads(leads) {
         body.appendChild(tr);
     });
 }
+
+// ═══ LEAD SELECTION FOR SEND QUEUE ═══
+let selectedLeadIds = new Set();
+
+function toggleLeadSelect(id, checked) {
+    if (checked) selectedLeadIds.add(id);
+    else selectedLeadIds.delete(id);
+    updateQueueButton();
+}
+
+function toggleSelectAllLeads(checked) {
+    document.querySelectorAll('.lead-select-checkbox').forEach(cb => {
+        cb.checked = checked;
+    });
+    // Derive selection from checkboxes currently in the DOM (post-filter rows only)
+    selectedLeadIds = new Set();
+    document.querySelectorAll('#leadsTableBody tr').forEach(tr => {
+        const cb = tr.querySelector('.lead-select-checkbox');
+        if (cb && cb.checked) {
+            const match = cb.getAttribute('onchange').match(/toggleLeadSelect\('([^']+)'/);
+            if (match) selectedLeadIds.add(match[1]);
+        }
+    });
+    updateQueueButton();
+}
+
+function updateQueueButton() {
+    const btn = document.getElementById('sendQueueBtn');
+    const countEl = document.getElementById('queueCount');
+    countEl.innerText = selectedLeadIds.size;
+    if (selectedLeadIds.size > 0) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+    } else {
+        btn.disabled = true;
+        btn.style.opacity = '0.4';
+        btn.style.cursor = 'not-allowed';
+    }
+}
+
+// ═══ SEND QUEUE ═══
+let queueCooldownUntil = 0;
+let queueCooldownTimer = null;
+
+async function openSendQueue() {
+    if (selectedLeadIds.size === 0) return;
+    const queueLeads = allLeads.filter(l => selectedLeadIds.has(l._id));
+    const listEl = document.getElementById('queueList');
+    listEl.innerHTML = queueLeads.map(l =>
+        `<div class="queue-item glass-card rounded-xl p-3 border border-white/5" data-lead-id="${l._id}">
+            <div class="flex items-center justify-between mb-2">
+                <div>
+                    <p class="text-xs font-semibold text-white">@${l.username.replace(/^@+/,'')}</p>
+                    <p class="text-[10px] text-slate-500">${l.niche}</p>
+                </div>
+                <span class="queue-status text-[10px] text-slate-500 italic">Generating pitch...</span>
+            </div>
+            <p class="queue-pitch-text text-[11px] text-slate-400 leading-relaxed mb-2 hidden"></p>
+            <button class="queue-action-btn glass-card border border-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1.5 transition w-full justify-center"
+                onclick="runQueueItem('${l._id}', '${l.username.replace(/^@+/,'')}', event)" disabled style="opacity:0.5">
+                <i class="fa-solid fa-spinner fa-spin"></i> Preparing...
+            </button>
+        </div>`
+    ).join('');
+
+    openModal('queueModal');
+
+    // Generate all pitches up front so working through the queue is instant
+    for (const lead of queueLeads) {
+        const cleanUser = lead.username.replace(/^@+/, '');
+        const itemEl = listEl.querySelector(`.queue-item[data-lead-id="${lead._id}"]`);
+        try {
+            const res = await fetch(`${API_BASE}/ai/preview`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: cleanUser, niche: lead.niche })
+            });
+            const data = await res.json();
+            itemEl.dataset.pitch = data.dm;
+            itemEl.querySelector('.queue-status').innerText = 'Ready';
+            const btn = itemEl.querySelector('.queue-action-btn');
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.innerHTML = `<i class="fa-regular fa-copy"></i> Copy + Open DM`;
+        } catch (e) {
+            itemEl.querySelector('.queue-status').innerText = 'Failed';
+            console.error('Queue pitch generation failed for', cleanUser, e);
+        }
+    }
+}
+
+async function runQueueItem(leadId, username, event) {
+    const now = Date.now();
+    if (now < queueCooldownUntil) {
+        showToast('Give it a few more seconds before the next one — keeps things looking human.', 'error');
+        return;
+    }
+
+    const itemEl = document.querySelector(`.queue-item[data-lead-id="${leadId}"]`);
+    const pitchText = itemEl?.dataset.pitch;
+    if (!pitchText) return;
+
+    // Copy to clipboard
+    if (navigator.clipboard) {
+        await navigator.clipboard.writeText(pitchText);
+    } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = pitchText;
+        textArea.style.position = 'fixed';
+        document.body.appendChild(textArea);
+        textArea.focus(); textArea.select();
+        try { document.execCommand('copy'); } catch(e) { console.error(e); }
+        document.body.removeChild(textArea);
+    }
+
+    // Open the DM thread
+    openInstagramDM(username);
+
+    // Mark row done
+    itemEl.querySelector('.queue-status').innerText = 'Copied — paste & send in the tab that opened';
+    itemEl.querySelector('.queue-status').classList.remove('text-slate-500');
+    itemEl.querySelector('.queue-status').classList.add('text-emerald-400');
+    const btn = itemEl.querySelector('.queue-action-btn');
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+    btn.innerHTML = `<i class="fa-solid fa-check"></i> Sent to this tab`;
+
+    // Sync CRM status
+    updateLeadStatus(leadId, 'DMed');
+    fetchLeads();
+
+    // Start a randomized cooldown before the next queue item can be actioned,
+    // to avoid firing off several sends back-to-back.
+    const cooldownMs = (30 + Math.random() * 45) * 1000; // 30-75s
+    queueCooldownUntil = Date.now() + cooldownMs;
+    startQueueCooldownDisplay();
+}
+
+function startQueueCooldownDisplay() {
+    document.querySelectorAll('.queue-action-btn').forEach(btn => {
+        if (!btn.disabled) {
+            btn.dataset.wasEnabled = 'true';
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+        }
+    });
+    if (queueCooldownTimer) clearInterval(queueCooldownTimer);
+    queueCooldownTimer = setInterval(() => {
+        const remaining = Math.ceil((queueCooldownUntil - Date.now()) / 1000);
+        if (remaining <= 0) {
+            clearInterval(queueCooldownTimer);
+            document.querySelectorAll('.queue-action-btn').forEach(btn => {
+                if (btn.dataset.wasEnabled === 'true') {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.innerHTML = `<i class="fa-regular fa-copy"></i> Copy + Open DM`;
+                    delete btn.dataset.wasEnabled;
+                }
+            });
+        } else {
+            document.querySelectorAll('.queue-action-btn').forEach(btn => {
+                if (btn.dataset.wasEnabled === 'true') {
+                    btn.innerHTML = `<i class="fa-solid fa-clock"></i> Wait ${remaining}s`;
+                }
+            });
+        }
+    }, 1000);
+}
+
 
 // ═══ FILTER LEADS ═══
 function filterLeads() {
@@ -903,19 +1102,72 @@ async function updateLeadStatus(id, newStatus) {
 }
 
 // ═══ COPY PITCH ═══
-async function copyPitchToClipboard(username, niche) {
-    try {
-        const res  = await fetch(`${API_BASE}/ai/preview`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, niche })
-        });
-        const data = await res.json();
-        await navigator.clipboard.writeText(data.dm);
-        showToast(`Pitch for @${username} copied!`);
-    } catch(e) {
-        showToast('Failed — check your Groq API key', 'error');
+async function copyPitchToClipboard(username, niche, event) {
+    // 1. Get the button element that was clicked to show visual feedback
+    const btn = event ? event.currentTarget : null;
+    const originalText = btn ? btn.innerHTML : "Copy Pitch";
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Writing...`;
     }
+
+    try {
+        // 2. Fetch the AI response from the FastAPI backend
+        const res = await fetch(`${API_BASE}/ai/preview`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: username, niche: niche })
+        });
+        
+        if (!res.ok) throw new Error("API responded with an error");
+        
+        const data = await res.json();
+        const pitchText = data.dm;
+
+        // 3. Fallback clipboard copying mechanism for local file protocols (file://)
+        if (!navigator.clipboard) {
+            const textArea = document.createElement("textarea");
+            textArea.value = pitchText;
+            textArea.style.position = "fixed";  // Avoid scrolling down
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast(`Pitch for @${username} copied — opening DM thread...`);
+            } catch (err) {
+                console.error('Fallback copy failed', err);
+                alert("Failed to copy text automatically. Here is the pitch:\n\n" + pitchText);
+            }
+            document.body.removeChild(textArea);
+        } else {
+            // Standard modern secure copy
+            await navigator.clipboard.writeText(pitchText);
+            showToast(`Pitch for @${username} copied — opening DM thread...`);
+        }
+
+        // 4. Open the lead's Instagram DM thread in a new tab so the pitch
+        //    just needs to be pasted and sent — no manual searching required.
+        openInstagramDM(username);
+    } catch (e) {
+        console.error("AI copy failed:", e);
+        showToast("Copy failed - is Groq API Key missing or invalid?", "error");
+    } finally {
+        // 5. Restore the button state
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+}
+
+// Opens the Instagram DM thread for a given username in a new tab.
+// ig.me/m/<username> resolves to the direct-message compose view when
+// you're logged into instagram.com in that browser/session already.
+function openInstagramDM(username) {
+    const clean = username.replace(/^@+/, '');
+    window.open(`https://ig.me/m/${clean}`, '_blank', 'noopener');
 }
 
 // ═══ FETCH SETTINGS ═══

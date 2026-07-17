@@ -1,8 +1,9 @@
 {
   "accounts": [
-    {
-      "username": "b2b_apparel_hub",
+      {
+      "username": "pz_miiir",
       "status": "Active",
+      "password": "char_lee", 
       "proxy": "http://185.132.53.12:8000",
       "daily_actions": {
         "dm": 12,
@@ -41,15 +42,15 @@
     {
       "username": "vanguard_dojo",
       "niche": "Martial Arts",
-      "status": "Pending",
-      "last_action": null,
+      "status": "ReadyForExecution",
+      "last_action": "2026-07-17T11:51:54.594338",
       "_id": "40becde0-ac16-4bf1-b5e3-c8ee04260de7"
     },
     {
       "username": "apex_fightwear",
       "niche": "Martial Arts",
-      "status": "Pending",
-      "last_action": null,
+      "status": "ReadyForExecution",
+      "last_action": "2026-07-17T11:51:55.609126",
       "_id": "01d0c7cf-0928-4e4b-a7b3-e6e857d1ddf9"
     },
     {
@@ -62,8 +63,8 @@
     {
       "username": "gladiator_gym_gear",
       "niche": "Martial Arts",
-      "status": "Replied",
-      "last_action": "2026-05-22T19:15:00",
+      "status": "Pending",
+      "last_action": "2026-07-17T11:53:49.991602",
       "_id": "8477171a-3623-4f63-a729-4f723bc4e812"
     },
     {
@@ -76,22 +77,22 @@
     {
       "username": "copilot_test_1779514050",
       "niche": "Test",
-      "status": "Pending",
-      "last_action": null,
+      "status": "ReadyForExecution",
+      "last_action": "2026-07-17T11:51:56.619227",
       "_id": "a063ff4b-48cb-4437-bac2-139578e8cbef"
     },
     {
       "username": "babar_khan78",
       "niche": "Martial Arts",
-      "status": "Pending",
-      "last_action": null,
+      "status": "ReadyForExecution",
+      "last_action": "2026-07-17T11:51:57.637261",
       "_id": "69aa0410-071d-4064-9a4a-18ecd8716ec0"
     },
     {
       "username": "atlas_test_1779514365",
       "niche": "Test",
-      "status": "Pending",
-      "last_action": null,
+      "status": "ReadyForExecution",
+      "last_action": "2026-07-17T11:51:58.648550",
       "_id": "7aa0286e-db82-4e10-a1ad-246e02093041"
     }
   ],
@@ -129,6 +130,144 @@
       "level": "INFO",
       "message": "Lead saved to DB (fallback): @atlas_test_1779514365 (id=7aa0286e-db82-4e10-a1ad-246e02093041).",
       "_id": "3ecfacba-9789-4ef8-8a53-dbc3e1b5875b"
+    },
+    {
+      "timestamp": "2026-07-17T11:51:54.585857",
+      "level": "INFO",
+      "message": "Campaign dispatcher launched.",
+      "_id": "2c51f731-4a78-46bf-a231-26cb91847642"
+    },
+    {
+      "timestamp": "2026-07-17T11:51:54.589577",
+      "level": "INFO",
+      "message": "Starting backend lead processing loop...",
+      "_id": "b891e947-1504-4e18-97ac-1a48c86bc00f"
+    },
+    {
+      "timestamp": "2026-07-17T11:51:54.592993",
+      "level": "INFO",
+      "message": "[b2b_apparel_hub] Processing lead @vanguard_dojo (DB mode: fallback).",
+      "_id": "571b1d01-50ea-4ba7-9e92-858fdb5a0fa7"
+    },
+    {
+      "timestamp": "2026-07-17T11:51:54.595863",
+      "level": "WARNING",
+      "message": "[b2b_apparel_hub] Lead @vanguard_dojo prepared only. LIVE_EXECUTION_ENABLED=false, so no Instagram action was performed.",
+      "_id": "cd396358-bd65-4425-802d-5422dbb1e0c5"
+    },
+    {
+      "timestamp": "2026-07-17T11:51:55.607619",
+      "level": "INFO",
+      "message": "[b2b_apparel_hub] Processing lead @apex_fightwear (DB mode: fallback).",
+      "_id": "1069527e-dd71-4502-86ac-8d6f613807ab"
+    },
+    {
+      "timestamp": "2026-07-17T11:51:55.612240",
+      "level": "WARNING",
+      "message": "[b2b_apparel_hub] Lead @apex_fightwear prepared only. LIVE_EXECUTION_ENABLED=false, so no Instagram action was performed.",
+      "_id": "0ce58e7f-4236-4251-93ed-59eb3f135468"
+    },
+    {
+      "timestamp": "2026-07-17T11:51:56.617975",
+      "level": "INFO",
+      "message": "[b2b_apparel_hub] Processing lead @copilot_test_1779514050 (DB mode: fallback).",
+      "_id": "850502af-c876-42d3-98d9-1fc5e280fe32"
+    },
+    {
+      "timestamp": "2026-07-17T11:51:56.620259",
+      "level": "WARNING",
+      "message": "[b2b_apparel_hub] Lead @copilot_test_1779514050 prepared only. LIVE_EXECUTION_ENABLED=false, so no Instagram action was performed.",
+      "_id": "86547b18-a261-46f9-8bec-8f0dc768f847"
+    },
+    {
+      "timestamp": "2026-07-17T11:51:57.635872",
+      "level": "INFO",
+      "message": "[b2b_apparel_hub] Processing lead @babar_khan78 (DB mode: fallback).",
+      "_id": "1559d742-c7cb-43d4-b9b2-c19bf5908392"
+    },
+    {
+      "timestamp": "2026-07-17T11:51:57.638587",
+      "level": "WARNING",
+      "message": "[b2b_apparel_hub] Lead @babar_khan78 prepared only. LIVE_EXECUTION_ENABLED=false, so no Instagram action was performed.",
+      "_id": "71242a21-ad60-4b8c-9edd-ad49edae5f94"
+    },
+    {
+      "timestamp": "2026-07-17T11:51:58.646889",
+      "level": "INFO",
+      "message": "[b2b_apparel_hub] Processing lead @atlas_test_1779514365 (DB mode: fallback).",
+      "_id": "b185f895-5188-4a91-86b2-0f86993b1677"
+    },
+    {
+      "timestamp": "2026-07-17T11:51:58.650124",
+      "level": "WARNING",
+      "message": "[b2b_apparel_hub] Lead @atlas_test_1779514365 prepared only. LIVE_EXECUTION_ENABLED=false, so no Instagram action was performed.",
+      "_id": "1a479f60-e5be-4a97-a801-c15454791c8d"
+    },
+    {
+      "timestamp": "2026-07-17T11:51:59.279338",
+      "level": "WARNING",
+      "message": "Campaign dispatcher paused.",
+      "_id": "cb865d94-3443-4c1b-abce-e470f073a422"
+    },
+    {
+      "timestamp": "2026-07-17T11:53:12.848337",
+      "level": "INFO",
+      "message": "Campaign dispatcher launched.",
+      "_id": "31f28d79-0612-49c3-8249-49122749c26c"
+    },
+    {
+      "timestamp": "2026-07-17T11:53:12.851459",
+      "level": "INFO",
+      "message": "Starting backend lead processing loop...",
+      "_id": "9b212fd1-b0e3-4a82-b2f5-17b6d6db132b"
+    },
+    {
+      "timestamp": "2026-07-17T11:53:12.853233",
+      "level": "INFO",
+      "message": "No pending leads remaining in the database.",
+      "_id": "9344cdbb-1e46-4cc8-bc86-84cf34527ff1"
+    },
+    {
+      "timestamp": "2026-07-17T11:53:15.053491",
+      "level": "INFO",
+      "message": "Campaign dispatcher launched.",
+      "_id": "ed32c94d-8ad9-4fe3-b38e-1208a760f926"
+    },
+    {
+      "timestamp": "2026-07-17T11:53:15.056251",
+      "level": "INFO",
+      "message": "Starting backend lead processing loop...",
+      "_id": "58bd3125-16c6-4a05-9676-55ecb863a201"
+    },
+    {
+      "timestamp": "2026-07-17T11:53:15.057482",
+      "level": "INFO",
+      "message": "No pending leads remaining in the database.",
+      "_id": "d77947e4-f1d7-4b18-a5cc-b37d9f63c29d"
+    },
+    {
+      "timestamp": "2026-07-17T11:53:16.124795",
+      "level": "INFO",
+      "message": "Campaign dispatcher launched.",
+      "_id": "d990b14b-690d-47d3-86c3-da41738b1dd2"
+    },
+    {
+      "timestamp": "2026-07-17T11:53:16.127585",
+      "level": "INFO",
+      "message": "Starting backend lead processing loop...",
+      "_id": "edd0fcd6-ac37-43d6-8bef-0e8ebef01769"
+    },
+    {
+      "timestamp": "2026-07-17T11:53:16.129297",
+      "level": "INFO",
+      "message": "No pending leads remaining in the database.",
+      "_id": "9313d916-c22e-4094-ac40-07822f57f13a"
+    },
+    {
+      "timestamp": "2026-07-17T11:53:49.993524",
+      "level": "INFO",
+      "message": "Lead status manually updated to 'Pending'.",
+      "_id": "ee1870c9-0a3a-4118-a0a7-2fe064aa4351"
     }
   ]
 }

@@ -1,9 +1,9 @@
 const API_BASE = "http://localhost:8000/api";
 
-// ─── In-memory lead cache for client-side filtering & CSV export ───
+// In-memory lead cache for client-side filtering & CSV export
 let _allLeads = [];
 
-// ─── Init ───────────────────────────────────────────────────────────
+// Init 
 document.addEventListener("DOMContentLoaded", () => {
     fetchStats();
     fetchAccounts();
@@ -13,468 +13,560 @@ document.addEventListener("DOMContentLoaded", () => {
     buildActivityTimeline();
 });
 
-// ─── Sidebar Page Navigation ────────────────────────────────────────
+// Sidebar Page Navigation
 function showPage(name) {
-    // Hide all pages
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    // Remove active from all nav items
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    // Show target page
-    document.getElementById('page-' + name).classList.add('active');
-    document.getElementById('nav-' + name).classList.add('active');
+    
+    const targetPage = document.getElementById('page-' + name);
+    if (targetPage) targetPage.classList.add('active');
 
-    // Refresh analytics when switching to that page
+    // Highlight navigation item
+    document.querySelectorAll('.nav-item').forEach(n => {
+        if (n.getAttribute('onclick') === `showPage('${name}')`) n.classList.add('active');
+    });
+
+    const pageMeta = {
+        dashboard:  { title: 'Dashboard',   subtitle: 'Outreach performance overview' },
+        leads:      { title: 'Leads CRM',   subtitle: 'Manage and track your outreach targets' },
+        analytics:  { title: 'Analytics',   subtitle: 'Charts and performance insights' },
+        campaigns:  { title: 'Campaigns',   subtitle: 'Configure and control outreach campaigns' },
+        settings:   { title: 'Settings',    subtitle: 'Global platform configuration' },
+    };
+
+    if (pageMeta[name]) {
+        document.getElementById('pageTitle').textContent = pageMeta[name].title;
+        document.getElementById('pageSubtitle').textContent = pageMeta[name].subtitle;
+    }
+
     if (name === 'analytics') updateAnalytics();
+    if (name === 'campaigns') renderCampaignAccounts();
 }
 
-// ─── Modal Helpers ───────────────────────────────────────────────────
-function openModal(id) {
-    document.getElementById(id).classList.add('open');
+// Modal Helpers
+function openModal(id)  { 
+    const m = document.getElementById(id);
+    if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
 }
-function closeModal(id) {
-    document.getElementById(id).classList.remove('open');
+function closeModal(id) { 
+    const m = document.getElementById(id);
+    if (m) { m.classList.remove('flex'); m.classList.add('hidden'); }
 }
 
-// ─── 1. Fetch Aggregated Metrics ─────────────────────────────────────
+// Toast Notifications
+function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    document.getElementById('toastMsg').textContent = msg;
+    const icon = document.getElementById('toastIcon');
+    icon.className = type === 'error'
+        ? 'fa-solid fa-circle-exclamation text-rose-400'
+        : 'fa-solid fa-check-circle text-emerald-400';
+    t.classList.remove('hidden');
+    setTimeout(() => t.classList.add('hidden'), 3000);
+}
+
+// 1. Fetch Aggregated Metrics
 async function fetchStats() {
     try {
         const res = await fetch(`${API_BASE}/dashboard/stats`);
         const stats = await res.json();
 
-        document.getElementById("statTotalLeads").innerText    = stats.total_leads;
+        document.getElementById("statTotalLeads").innerText     = stats.total_leads;
         document.getElementById("statActiveAccounts").innerText = stats.active_accounts;
-        document.getElementById("statDmedLeads").innerText     = stats.dmed_leads;
-        document.getElementById("statRepliedLeads").innerText  = stats.replied_leads;
+        document.getElementById("statDmedLeads").innerText      = stats.dmed_leads;
+        document.getElementById("statRepliedLeads").innerText   = stats.replied_leads;
 
-        // Campaign toggle button — sidebar
-        const toggleBtn  = document.getElementById("toggleCampaignBtn");
-        const toggleLarge = document.getElementById("campaignToggleLarge");
-        const statusText = document.getElementById("campaignStatusText");
-        const statusDot  = document.getElementById("campaignStatusDot");
-
-        if (stats.campaign_running) {
-            // Sidebar button
-            toggleBtn.className = "btn-pause w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-white font-semibold text-[13px]";
-            toggleBtn.innerHTML = '<i class="fa-solid fa-pause text-[11px]"></i><span>Pause Campaign</span>';
-            // Campaign page button
-            if (toggleLarge) {
-                toggleLarge.className = "btn-pause w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-[13px]";
-                toggleLarge.innerHTML = '<i class="fa-solid fa-pause text-[11px]"></i><span>Pause Campaign</span>';
+        // Sync Campaign toggle button state
+        const btn  = document.getElementById("toggleCampaignBtn");
+        const icon = document.getElementById("toggleIcon");
+        const txt  = document.getElementById("toggleText");
+        
+        if (btn && icon && txt) {
+            if (stats.campaign_running) {
+                btn.style.background = 'linear-gradient(135deg,#dc2626,#b91c1c)';
+                icon.className = 'fa-solid fa-pause';
+                txt.textContent = 'Pause Campaign';
+            } else {
+                btn.style.background = '';
+                icon.className = 'fa-solid fa-play';
+                txt.textContent = 'Launch Automation';
             }
-            if (statusText) statusText.innerText = "Running";
-            if (statusDot)  { statusDot.className = "h-3 w-3 rounded-full bg-emerald-500 block"; }
-        } else {
-            toggleBtn.className = "btn-launch w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-white font-semibold text-[13px]";
-            toggleBtn.innerHTML = '<i class="fa-solid fa-play text-[11px]"></i><span>Launch Automation</span>';
-            if (toggleLarge) {
-                toggleLarge.className = "btn-launch w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-[13px]";
-                toggleLarge.innerHTML = '<i class="fa-solid fa-play text-[11px]"></i><span>Launch Automation</span>';
-            }
-            if (statusText) statusText.innerText = "Idle";
-            if (statusDot)  { statusDot.className = "h-3 w-3 rounded-full bg-slate-600 block"; }
         }
-
         updateAnalytics(stats);
     } catch (e) {
         console.error("Error fetching metrics:", e);
     }
 }
 
-// ─── 2. Fetch Profiles & Render ──────────────────────────────────────
+// 2. Fetch Profiles & Render
 async function fetchAccounts() {
     try {
-        const res = await fetch(`${API_BASE}/accounts`);
+        const res      = await fetch(`${API_BASE}/accounts`);
         const accounts = await res.json();
-
-        const renderAccounts = (containerId) => {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            container.innerHTML = "";
-
-            if (!accounts.length) {
-                container.innerHTML = '<p class="text-[12px] text-slate-500 text-center py-4">No accounts connected</p>';
-                return;
-            }
-
-            accounts.forEach(acc => {
-                const div = document.createElement("div");
-                div.className = "bg-blue-900/10 border border-blue-500/10 rounded-xl p-3 flex justify-between items-center text-[11px]";
-
-                const badgeClass = acc.status === "Active"
-                    ? "bg-emerald-500/18 text-emerald-400"
-                    : "bg-amber-500/18 text-amber-400";
-
-                div.innerHTML = `
-                    <div class="space-y-1">
-                        <p class="font-medium text-white flex items-center gap-1.5">
-                            <i class="fa-brands fa-instagram text-pink-400 text-xs"></i> @${acc.username}
-                        </p>
-                        <p class="text-[10px] text-slate-500">
-                            Proxy: ${acc.proxy ? acc.proxy.split('@')[1] || acc.proxy : 'Direct'}
-                        </p>
-                    </div>
-                    <div class="text-right space-y-1">
-                        <span class="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider ${badgeClass}">${acc.status}</span>
-                        <p class="text-[10px] text-slate-500">DMs: ${acc.daily_actions?.dm || 0}</p>
-                    </div>`;
-                container.appendChild(div);
-            });
-        };
-
-        renderAccounts("accountsContainer");
-        renderAccounts("accountsContainerCampaign");
-    } catch (e) {
-        console.error("Error fetching accounts:", e);
-    }
+        renderAccounts(accounts, 'accountsContainer');
+    } catch(e) { console.error(e); }
 }
 
-// ─── 3. Fetch CRM Leads Database ─────────────────────────────────────
+function renderAccounts(accounts, containerId) {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+    c.innerHTML = '';
+    accounts.forEach(acc => {
+        const badgeClass = acc.status === 'Active'
+            ? 'bg-emerald-500/15 text-emerald-400'
+            : 'bg-amber-500/15 text-amber-400';
+        const div = document.createElement('div');
+        div.className = 'glass-card rounded-xl p-3 flex justify-between items-center text-xs';
+        div.innerHTML = `
+            <div class="space-y-0.5">
+                <p class="font-medium text-white flex items-center gap-1.5">
+                    <i class="fa-brands fa-instagram text-blue-400 text-xs"></i> @${acc.username}
+                </p>
+                <p class="text-[10px] text-slate-500">Proxy: ${acc.proxy ? acc.proxy.split('@')[1] || acc.proxy : 'Direct'}</p>
+            </div>
+            <div class="text-right space-y-1">
+                <span class="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase ${badgeClass}">${acc.status}</span>
+                <p class="text-[9px] text-slate-500">DM:${acc.daily_actions?.dm || 0} Lk:${acc.daily_actions?.like || 0}</p>
+            </div>`;
+        c.appendChild(div);
+    });
+}
+
+function renderCampaignAccounts() {
+    fetch(`${API_BASE}/accounts`)
+        .then(r => r.json())
+        .then(accounts => renderAccounts(accounts, 'accountsContainerCampaigns'))
+        .catch(e => console.error(e));
+}
+
+// 3. Fetch CRM Leads Database
 async function fetchLeads() {
     try {
-        const res = await fetch(`${API_BASE}/leads`);
-        _allLeads = await res.json();
-        renderLeads(_allLeads);
-    } catch (e) {
-        console.error("Error fetching leads:", e);
-    }
+        const res   = await fetch(`${API_BASE}/leads`);
+        const leads = await res.json();
+        _allLeads   = leads;
+        renderLeads(leads);
+    } catch(e) { console.error(e); }
 }
 
 function renderLeads(leads) {
-    const body = document.getElementById("leadsTableBody");
-    body.innerHTML = "";
-
-    if (!leads.length) {
-        body.innerHTML = '<tr><td colspan="4" class="text-center text-slate-500 py-10 text-[13px]">No leads match your filters</td></tr>';
-        return;
-    }
-
+    const body = document.getElementById('leadsTableBody');
+    if (!body) return;
+    body.innerHTML = '';
+    
     leads.forEach(lead => {
-        const tr = document.createElement("tr");
-        tr.className = "border-b border-blue-900/10 hover:bg-blue-900/5 transition duration-150";
-
-        const cleanUser = lead.username.replace(/^@+/, "");
-
-        let badgeHtml = "";
-        if (lead.status === "Pending")
-            badgeHtml = '<span class="bg-slate-500/18 text-slate-400 px-2 py-0.5 rounded text-[10px] font-mono uppercase">Pending</span>';
-        else if (lead.status === "DMed")
-            badgeHtml = '<span class="bg-emerald-500/18 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-mono uppercase">Outreach Sent</span>';
-        else if (lead.status === "Replied")
-            badgeHtml = '<span class="bg-violet-500/18 text-violet-400 px-2 py-0.5 rounded text-[10px] font-mono uppercase">Replied</span>';
-        else if (lead.status === "Failed")
-            badgeHtml = '<span class="bg-rose-500/18 text-rose-400 px-2 py-0.5 rounded text-[10px] font-mono uppercase">Failed</span>';
-        else
-            badgeHtml = `<span class="bg-blue-500/18 text-blue-300 px-2 py-0.5 rounded text-[10px] font-mono uppercase">${lead.status}</span>`;
-
+        const cleanUser = lead.username.replace(/^@+/, '');
+        const statusMap = {
+            Pending: '<span class="badge-pending px-2 py-0.5 rounded text-[10px] font-mono uppercase">Pending</span>',
+            DMed:    '<span class="badge-dmed px-2 py-0.5 rounded text-[10px] font-mono uppercase">Sent</span>',
+            Replied: '<span class="badge-replied px-2 py-0.5 rounded text-[10px] font-mono uppercase">Replied</span>',
+            Failed:  '<span class="badge-failed px-2 py-0.5 rounded text-[10px] font-mono uppercase">Failed</span>',
+        };
+        const badge = statusMap[lead.status] || `<span class="px-2 py-0.5 rounded text-[10px] font-mono">${lead.status}</span>`;
+        const tr = document.createElement('tr');
+        tr.className = 'leads-row transition';
         tr.innerHTML = `
-            <td class="p-3 text-white font-medium">
+            <td class="p-3.5 text-white font-medium text-xs">
                 <div class="flex items-center gap-2">
-                    <span class="text-[13px]">@${cleanUser}</span>
-                    <a href="https://www.instagram.com/${cleanUser}/" target="_blank" class="text-slate-500 hover:text-blue-400 transition" title="Open Instagram">
-                        <i class="fa-solid fa-external-link text-[10px]"></i>
+                    <div class="w-7 h-7 rounded-full bg-blue-500/15 flex items-center justify-center flex-shrink-0">
+                        <i class="fa-brands fa-instagram text-blue-400 text-[11px]"></i>
+                    </div>
+                    <div>
+                        <p class="font-semibold">@${cleanUser}</p>
+                        <p class="text-[10px] text-slate-500">${lead.niche}</p>
+                    </div>
+                    <a href="https://www.instagram.com/${cleanUser}/" target="_blank" class="text-slate-600 hover:text-blue-400 transition ml-1">
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
                     </a>
                 </div>
             </td>
-            <td class="p-3 text-slate-400 text-[12px]">${lead.niche}</td>
-            <td class="p-3">
+            <td class="p-3.5 text-slate-400 text-xs">${lead.niche}</td>
+            <td class="p-3.5">
                 <select onchange="updateLeadStatus('${lead._id}', this.value)"
-                    class="bg-slate-900/80 border border-blue-900/25 text-[11px] rounded-lg px-2 py-1.5 text-slate-300 focus:outline-none focus:border-blue-500/50 cursor-pointer">
+                    class="bg-transparent border border-white/10 text-xs rounded-lg px-2 py-1 text-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer">
                     <option value="Pending"  ${lead.status === 'Pending'  ? 'selected' : ''}>Pending</option>
-                    <option value="DMed"     ${lead.status === 'DMed'     ? 'selected' : ''}>Outreach Sent</option>
+                    <option value="DMed"     ${lead.status === 'DMed'     ? 'selected' : ''}>Sent</option>
                     <option value="Replied"  ${lead.status === 'Replied'  ? 'selected' : ''}>Replied</option>
                     <option value="Failed"   ${lead.status === 'Failed'   ? 'selected' : ''}>Failed</option>
                 </select>
             </td>
-            <td class="p-3">
-                <button onclick="copyPitchToClipboard('${cleanUser}', '${lead.niche}')"
-                    class="bg-blue-600/22 text-blue-300 border border-blue-500/18 px-3 py-1.5 rounded-lg text-[11px] hover:bg-blue-600/38 transition flex items-center gap-1.5">
-                    <i class="fa-regular fa-copy text-[10px]"></i><span>Copy Pitch</span>
+            <td class="p-3 flex gap-2">
+                <button onclick="copyPitchToClipboard('${cleanUser}', '${lead.niche}', event)"
+                    class="glass-card border border-blue-500/15 text-blue-400 hover:text-blue-300 px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1.5 transition">
+                    <i class="fa-regular fa-copy"></i> Copy
+                </button>
+                <button onclick="autoSendPitch('${lead._id}', '${cleanUser}', '${lead.niche}', event)"
+                    class="btn-primary text-white px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-paper-plane text-[9px]"></i> Auto Send
                 </button>
             </td>`;
         body.appendChild(tr);
     });
 }
 
-// ─── Client-side filtering ────────────────────────────────────────────
+// Client-Side Filtering
 function filterLeads() {
-    const search  = (document.getElementById("searchLeads")?.value || "").toLowerCase();
-    const status  = document.getElementById("filterStatus")?.value || "";
-    const niche   = document.getElementById("filterNiche")?.value || "";
-
-    const filtered = _allLeads.filter(lead => {
-        const matchUser   = lead.username.toLowerCase().includes(search);
-        const matchStatus = !status || lead.status === status;
-        const matchNiche  = !niche  || lead.niche  === niche;
-        return matchUser && matchStatus && matchNiche;
+    const search = document.getElementById('searchLeads').value.toLowerCase();
+    const status = document.getElementById('filterStatus').value;
+    const niche  = document.getElementById('filterNiche').value;
+    const filtered = _allLeads.filter(l => {
+        const user = l.username.toLowerCase();
+        return (!search || user.includes(search))
+            && (!status || l.status === status)
+            && (!niche  || l.niche  === niche);
     });
-
     renderLeads(filtered);
 }
 
-// ─── CSV Export ───────────────────────────────────────────────────────
-function exportLeadsCSV() {
-    if (!_allLeads.length) { alert("No leads to export."); return; }
-
-    const header = ["Username", "Niche", "Status"];
-    const rows = _allLeads.map(l => [
-        l.username.replace(/^@+/, ""),
-        l.niche,
-        l.status
-    ]);
-
-    const csv = [header, ...rows].map(r => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href = url;
-    a.download = "apex_connect_leads.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+// Export CSV
+function exportCSV() {
+    const header = 'username,niche,status';
+    const rows   = _allLeads.map(l => `${l.username},${l.niche},${l.status}`);
+    const csv    = [header, ...rows].join('\n');
+    const blob   = new Blob([csv], { type: 'text/csv' });
+    const url    = URL.createObjectURL(blob);
+    const a      = document.createElement('a');
+    a.href = url; a.download = 'apex-connect-leads.csv'; a.click();
+    showToast('Leads exported as CSV');
 }
 
-// ─── 3.5 Update Lead Status ───────────────────────────────────────────
+// Update Lead Status manually
 async function updateLeadStatus(id, newStatus) {
     try {
         await fetch(`${API_BASE}/leads/status`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ lead_id: id, status: newStatus })
         });
         fetchStats();
-        // Update local cache too
-        const lead = _allLeads.find(l => l._id === id);
-        if (lead) lead.status = newStatus;
-    } catch (e) {
-        console.error("Error updating status:", e);
-    }
+    } catch(e) { console.error(e); }
 }
 
-// ─── Copy Pitch to Clipboard ──────────────────────────────────────────
-async function copyPitchToClipboard(username, niche) {
+// Copy Pitch to Clipboard
+async function copyPitchToClipboard(username, niche, event) {
+    const btn = event ? event.currentTarget : null;
+    const originalText = btn ? btn.innerHTML : "Copy Pitch";
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Writing...`;
+    }
+
     try {
         const res = await fetch(`${API_BASE}/ai/preview`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, niche })
+            body: JSON.stringify({ username: username, niche: niche })
         });
+        
+        if (!res.ok) throw new Error("API responded with an error");
+        
         const data = await res.json();
-        await navigator.clipboard.writeText(data.dm);
-        alert(`Pitch for @${username} copied! Paste it on Instagram.`);
+        const pitchText = data.dm;
+
+        if (!navigator.clipboard) {
+            const textArea = document.createElement("textarea");
+            textArea.value = pitchText;
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast(`Pitch for @${username} copied — opening DM thread...`);
+            } catch (err) {
+                console.error('Fallback copy failed', err);
+                alert("Failed to copy text automatically. Here is the pitch:\n\n" + pitchText);
+            }
+            document.body.removeChild(textArea);
+        } else {
+            await navigator.clipboard.writeText(pitchText);
+            showToast(`Pitch for @${username} copied — opening DM thread...`);
+        }
+
+        // Open the lead's Instagram DM thread in a new tab so the pitch
+        // just needs to be pasted and sent — no manual searching required.
+        openInstagramDM(username);
     } catch (e) {
-        console.error("Failed to copy pitch:", e);
-        alert("Make sure your Groq API key is valid to auto-generate the pitch!");
+        console.error("AI copy failed:", e);
+        showToast("Copy failed - is Groq API Key missing or invalid?", "error");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
     }
 }
 
-// ─── 4. Fetch Campaign Settings ───────────────────────────────────────
-async function fetchSettings() {
-    try {
-        const res = await fetch(`${API_BASE}/settings`);
-        const config = await res.json();
-        document.getElementById("campaignName").value = config.campaign_name || "";
-        document.getElementById("maxLeads").value     = config.max_leads_per_day || 30;
-        document.getElementById("warmupMode").checked = config.safety_warmup_mode || false;
-    } catch (e) {
-        console.error("Error loading config:", e);
-    }
+// Opens the Instagram DM thread for a given username in a new tab.
+// ig.me/m/<username> resolves to the direct-message compose view when
+// you're logged into instagram.com in that browser/session already.
+function openInstagramDM(username) {
+    const clean = username.replace(/^@+/, '');
+    window.open(`https://ig.me/m/${clean}`, '_blank', 'noopener');
 }
 
-// ─── 5. Submit Account ────────────────────────────────────────────────
-async function submitAccount(e) {
-    e.preventDefault();
-    const username = document.getElementById("accUser").value;
-    const password = document.getElementById("accPass").value;
-    const proxy    = document.getElementById("accProxy").value;
+// Trigger Secure Auto Send (Playwright Flow)
+async function autoSendPitch(leadId, username, niche, event) {
+    const btn = event ? event.currentTarget : null;
+    const originalText = btn ? btn.innerHTML : "Auto Send";
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Sending...`;
+    }
+
     try {
-        const res = await fetch(`${API_BASE}/accounts`, {
+        const res = await fetch(`${API_BASE}/leads/send-auto`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lead_id: leadId, status: "DMed" })
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Failed to execute safely.");
+
+        showToast(`Auto-sent DM to @${username}!`);
+        fetchLeads();
+        fetchStats();
+    } catch (e) {
+        console.error("Auto send failed:", e);
+        showToast(e.message || "Auto-send failed.", "error");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+}
+
+// Fetch Settings
+async function fetchSettings() {
+    try {
+        const res    = await fetch(`${API_BASE}/settings`);
+        const config = await res.json();
+        const cn = config.campaign_name    || '';
+        const ml = config.max_leads_per_day || 30;
+        const wm = config.safety_warmup_mode || false;
+        ['campaignName','settingsCampaignName'].forEach(id => { const el = document.getElementById(id); if(el) el.value = cn; });
+        ['maxLeads','settingsMaxLeads'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ml; });
+        ['warmupMode','settingsWarmup'].forEach(id => { const el = document.getElementById(id); if(el) el.checked = wm; });
+    } catch(e) { console.error(e); }
+}
+
+// Save Settings
+async function saveSettings(e) {
+    e.preventDefault();
+    const campaign_name      = document.getElementById('campaignName').value;
+    const max_leads_per_day  = parseInt(document.getElementById('maxLeads').value);
+    const safety_warmup_mode = document.getElementById('warmupMode').checked;
+    try {
+        await fetch(`${API_BASE}/settings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ campaign_name, max_leads_per_day, safety_warmup_mode, dm_template:'', comment_template:'' })
+        });
+        showToast('Campaign settings saved');
+        fetchStats();
+    } catch(e) { console.error(e); }
+}
+
+async function saveSettingsFromPage() {
+    const campaign_name      = document.getElementById('settingsCampaignName').value;
+    const max_leads_per_day  = parseInt(document.getElementById('settingsMaxLeads').value);
+    const safety_warmup_mode = document.getElementById('settingsWarmup').checked;
+    try {
+        await fetch(`${API_BASE}/settings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ campaign_name, max_leads_per_day, safety_warmup_mode, dm_template:'', comment_template:'' })
+        });
+        showToast('Settings saved');
+        fetchStats();
+    } catch(e) { console.error(e); }
+}
+
+// Submit IG Account
+async function submitAccountBtn() {
+    const username = document.getElementById('accUser').value;
+    const password = document.getElementById('accPass').value;
+    const proxy    = document.getElementById('accProxy').value;
+    try {
+        const res = await fetch(`${API_BASE}/accounts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password, proxy })
         });
         if (res.ok) {
-            closeModal("accountModal");
-            document.getElementById("accUser").value  = "";
-            document.getElementById("accPass").value  = "";
-            document.getElementById("accProxy").value = "";
-            fetchAccounts();
-            fetchStats();
+            closeModal('accountModal');
+            ['accUser','accPass','accProxy'].forEach(id => document.getElementById(id).value = '');
+            fetchAccounts(); fetchStats();
+            showToast('Account linked successfully');
         } else {
-            alert("Error validating or uploading Instagram account settings.");
+            showToast('Error linking account', 'error');
         }
-    } catch (err) {
-        console.error(err);
-    }
+    } catch(e) { console.error(e); }
 }
 
-// ─── 6. Submit Lead ───────────────────────────────────────────────────
-async function submitLead(e) {
-    e.preventDefault();
-    const username = document.getElementById("leadUser").value;
-    const niche    = document.getElementById("leadNiche").value;
+// Submit CRM Lead
+async function submitLeadBtn() {
+    const username = document.getElementById('leadUser').value;
+    const niche    = document.getElementById('leadNiche').value;
     try {
         const res = await fetch(`${API_BASE}/leads`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, niche })
         });
         if (res.ok) {
-            closeModal("leadModal");
-            document.getElementById("leadUser").value = "";
-            fetchLeads();
-            fetchStats();
+            closeModal('leadModal');
+            document.getElementById('leadUser').value = '';
+            fetchLeads(); fetchStats();
+            showToast('Lead added to CRM');
         } else {
-            alert("Lead username is already stored in CRM.");
+            showToast('Lead already exists in CRM', 'error');
         }
-    } catch (err) {
-        console.error(err);
-    }
+    } catch(e) { console.error(e); }
 }
 
-// ─── 7. Save Settings ─────────────────────────────────────────────────
-async function saveSettings(e) {
-    e.preventDefault();
-    const campaign_name      = document.getElementById("campaignName").value;
-    const max_leads_per_day  = parseInt(document.getElementById("maxLeads").value);
-    const safety_warmup_mode = document.getElementById("warmupMode").checked;
-    try {
-        await fetch(`${API_BASE}/settings`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                campaign_name, max_leads_per_day, safety_warmup_mode,
-                dm_template: "", comment_template: ""
-            })
-        });
-        alert("Campaign configuration saved.");
-        fetchStats();
-    } catch (e) {
-        console.error(e);
-    }
-}
-
-// ─── 8. AI Copy Preview ───────────────────────────────────────────────
+// AI Copy Preview Generation
 async function previewAICopy() {
-    const username = document.getElementById("previewUsername").value;
-    const niche    = document.getElementById("previewNiche").value;
-    const spinner  = document.getElementById("previewSpinner");
-
-    if (!username) { alert("Please enter a target account name first."); return; }
-
-    spinner.classList.remove("hidden");
+    const username = document.getElementById('previewUsername').value;
+    const niche    = document.getElementById('previewNiche').value;
+    const spinner  = document.getElementById('previewSpinner');
+    if (!username) { showToast('Enter a target account name', 'error'); return; }
+    spinner.classList.remove('hidden');
     try {
-        const res = await fetch(`${API_BASE}/ai/preview`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+        const res  = await fetch(`${API_BASE}/ai/preview`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, niche })
         });
         const data = await res.json();
-        document.getElementById("previewDmResult").innerText      = data.dm;
-        document.getElementById("previewCommentResult").innerText = data.comment;
-    } catch (e) {
-        console.error("AI preview error:", e);
-    } finally {
-        spinner.classList.add("hidden");
-    }
+        document.getElementById('previewDmResult').innerText      = data.dm;
+        document.getElementById('previewCommentResult').innerText  = data.comment;
+    } catch(e) { console.error(e); } finally { spinner.classList.add('hidden'); }
 }
 
-// ─── 9. Toggle Campaign ───────────────────────────────────────────────
+// Toggle Campaign loop state
 async function toggleCampaign() {
     try {
-        await fetch(`${API_BASE}/campaign/toggle`, { method: "POST" });
+        await fetch(`${API_BASE}/campaign/toggle`, { method: 'POST' });
         fetchStats();
-    } catch (e) {
-        console.error(e);
-    }
+    } catch(e) { console.error(e); }
 }
 
-// ─── 10. SSE Log Stream ───────────────────────────────────────────────
+// Real-Time SSE Log pipe
 function initializeLogStream() {
-    const terminals = [
-        document.getElementById("terminalStream"),
-        document.getElementById("terminalStream2")
-    ].filter(Boolean);
-
-    const source = new EventSource(`${API_BASE}/logs/stream`);
-
+    const terminal = document.getElementById('terminalStream');
+    if (!terminal) return;
+    const source   = new EventSource(`${API_BASE}/logs/stream`);
     source.onmessage = (event) => {
         const log = JSON.parse(event.data);
-
-        let colorClass = "text-slate-300";
-        if (log.level === "SUCCESS") colorClass = "text-emerald-400";
-        else if (log.level === "WARNING") colorClass = "text-amber-400";
-        else if (log.level === "ERROR")   colorClass = "text-rose-400";
-
-        const timestamp = new Date(log.timestamp).toLocaleTimeString();
-
-        terminals.forEach(terminal => {
-            const div = document.createElement("div");
-            div.className = colorClass;
-            div.textContent = `[${timestamp}] [${log.level}] ${log.message}`;
-            terminal.appendChild(div);
-            terminal.scrollTop = terminal.scrollHeight;
-        });
+        const div = document.createElement('div');
+        let cc = 'text-slate-300';
+        if (log.level === 'SUCCESS') cc = 'text-emerald-400';
+        else if (log.level === 'WARNING') cc = 'text-amber-400';
+        else if (log.level === 'ERROR')   cc = 'text-rose-400';
+        div.className = cc;
+        div.innerHTML = `[${new Date(log.timestamp).toLocaleTimeString()}] [${log.level}] ${log.message}`;
+        terminal.appendChild(div);
+        terminal.scrollTop = terminal.scrollHeight;
     };
-
-    source.onerror = () => {
-        console.warn("Log SSE stream disconnected. Retrying...");
-    };
+    source.onerror = () => console.warn('SSE disconnected. Retrying...');
 }
 
-// ─── Analytics Update ─────────────────────────────────────────────────
+// Analytics Visualizer
 function updateAnalytics(stats) {
-    // Use passed stats or read from DOM
-    const total   = parseInt(document.getElementById("statTotalLeads")?.innerText || "0");
-    const dmed    = parseInt(document.getElementById("statDmedLeads")?.innerText  || "0");
-    const replied = parseInt(document.getElementById("statRepliedLeads")?.innerText || "0");
+    const total   = parseInt(document.getElementById('statTotalLeads').innerText)  || 0;
+    const dmed    = parseInt(document.getElementById('statDmedLeads').innerText)   || 0;
+    const replied = parseInt(document.getElementById('statRepliedLeads').innerText)|| 0;
 
-    // Funnel bars
-    const setBar = (id, pct) => {
-        const el = document.getElementById(id);
-        if (el) el.style.width = pct + "%";
-    };
+    // Funnel
+    const funnelEl = document.getElementById('funnelChart');
+    if (funnelEl) {
+        funnelEl.innerHTML = '';
+        const funnelData = [
+            { label: 'Total Leads', value: total, color: 'bg-blue-500' },
+            { label: 'DMs Sent',    value: dmed,  color: 'bg-sky-400' },
+            { label: 'Replies',     value: replied,color: 'bg-violet-400' },
+        ];
+        funnelData.forEach(f => {
+            const pct = total > 0 ? Math.round((f.value / total) * 100) : 0;
+            funnelEl.innerHTML += `
+                <div class="ana-row">
+                    <span class="text-[11px] text-slate-400 w-24 flex-shrink-0">${f.label}</span>
+                    <div class="ana-bar-wrap"><div class="ana-bar ${f.color}" style="width:${pct}%"></div></div>
+                    <span class="text-[11px] text-white font-semibold w-8 text-right">${f.value}</span>
+                    <span class="text-[10px] text-slate-500 w-8">${pct}%</span>
+                </div>`;
+        });
+    }
 
-    const dmedPct    = total ? Math.round((dmed    / total) * 100) : 0;
-    const repliedPct = total ? Math.round((replied / total) * 100) : 0;
+    // Bar chart mock (simulated daily data)
+    const days   = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const values = [8, 12, 7, 15, 10, 6, dmed || 4];
+    const maxV   = Math.max(...values, 1);
+    const barEl  = document.getElementById('barChart');
+    const labEl  = document.getElementById('barLabels');
+    if (barEl && labEl) {
+        barEl.innerHTML = ''; labEl.innerHTML = '';
+        values.forEach((v, i) => {
+            const h = Math.round((v / maxV) * 100);
+            barEl.innerHTML  += `<div class="flex-1 flex flex-col items-center justify-end">
+                <span class="text-[10px] text-slate-500 mb-1">${v}</span>
+                <div class="chart-bar w-full" style="height:${h}%"></div>
+            </div>`;
+            labEl.innerHTML  += `<span class="flex-1 text-center text-[10px] text-slate-500">${days[i]}</span>`;
+        });
+    }
 
-    setBar("bar-total",   100);
-    setBar("bar-dmed",    dmedPct);
-    setBar("bar-replied", repliedPct);
-
-    const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
-    safeSet("bar-total-label",   total);
-    safeSet("bar-dmed-label",    dmed);
-    safeSet("bar-replied-label", replied);
-    safeSet("replyRateStat",     (total ? Math.round((replied / total) * 100) : 0) + "%");
-    safeSet("dmRateStat",        (total ? Math.round((dmed    / total) * 100) : 0) + "%");
+    // Niche breakdown
+    const nicheEl = document.getElementById('nicheBreakdown');
+    if (nicheEl) {
+        const niches  = {};
+        _allLeads.forEach(l => { niches[l.niche] = (niches[l.niche] || 0) + 1; });
+        nicheEl.innerHTML = '';
+        Object.entries(niches).forEach(([n, c]) => {
+            const pct = total > 0 ? Math.round((c / total) * 100) : 0;
+            nicheEl.innerHTML += `
+                <div class="ana-row">
+                    <span class="text-[11px] text-slate-400 w-32 flex-shrink-0">${n}</span>
+                    <div class="ana-bar-wrap"><div class="ana-bar" style="width:${pct}%"></div></div>
+                    <span class="text-[11px] text-white font-semibold w-6 text-right">${c}</span>
+                </div>`;
+        });
+        if (!Object.keys(niches).length) nicheEl.innerHTML = '<p class="text-xs text-slate-500 italic">No leads yet</p>';
+    }
 
     // Status breakdown
-    const breakdown = document.getElementById("statusBreakdown");
-    if (breakdown && _allLeads.length) {
-        const counts = { Pending: 0, DMed: 0, Replied: 0, Failed: 0 };
-        _allLeads.forEach(l => { if (counts[l.status] !== undefined) counts[l.status]++; });
-        const colors = { Pending: "bg-slate-500", DMed: "bg-emerald-500", Replied: "bg-violet-500", Failed: "bg-rose-500" };
-        breakdown.innerHTML = "";
-        Object.entries(counts).forEach(([status, count]) => {
-            const pct = _allLeads.length ? Math.round((count / _allLeads.length) * 100) : 0;
-            const div = document.createElement("div");
-            div.innerHTML = `
-                <div class="flex justify-between text-[11px] mb-1.5">
-                    <span class="text-slate-400">${status}</span>
-                    <span class="text-slate-300 font-semibold">${count} <span class="text-slate-600">(${pct}%)</span></span>
-                </div>
-                <div class="bg-white/5 rounded-full h-2">
-                    <div class="${colors[status]} h-2 rounded-full transition-all duration-700" style="width:${pct}%"></div>
+    const statEl   = document.getElementById('statusBreakdown');
+    if (statEl) {
+        const statuses = {};
+        _allLeads.forEach(l => { statuses[l.status] = (statuses[l.status] || 0) + 1; });
+        const sColors  = { Pending: '#3b82f6', DMed: '#34d399', Replied: '#a78bfa', Failed: '#f87171' };
+        statEl.innerHTML = '';
+        Object.entries(statuses).forEach(([s, c]) => {
+            const pct = total > 0 ? Math.round((c / total) * 100) : 0;
+            const col = sColors[s] || '#64748b';
+            statEl.innerHTML += `
+                <div class="ana-row">
+                    <span class="text-[11px] text-slate-400 w-24 flex-shrink-0">${s}</span>
+                    <div class="ana-bar-wrap"><div class="ana-bar" style="width:${pct}%;background:${col}"></div></div>
+                    <span class="text-[11px] text-white font-semibold w-6 text-right">${c}</span>
                 </div>`;
-            breakdown.appendChild(div);
         });
+        if (!Object.keys(statuses).length) statEl.innerHTML = '<p class="text-xs text-slate-500 italic">No leads yet</p>';
     }
 }
 
-// ─── Activity Timeline (decorative bars) ─────────────────────────────
+// Activity Timeline (decorative bars)
 function buildActivityTimeline() {
     const container = document.getElementById("activityTimeline");
     if (!container) return;
     const days = 30;
+    container.innerHTML = '';
     for (let i = 0; i < days; i++) {
         const h = Math.floor(Math.random() * 85) + 8;
         const bar = document.createElement("div");

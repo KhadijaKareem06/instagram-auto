@@ -1,4 +1,7 @@
 .env
 
 cmnds
+__pycache__
 
+code.py
+combined_project_code.txt

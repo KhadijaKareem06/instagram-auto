@@ -6,13 +6,23 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+import os
+import random
+from playwright.async_api import async_playwright
+from fastapi import HTTPException
 
-from app.config import settings
-from app.database import (
+# from backend.app.config import settings
+# from backend.app.database import (
+#     accounts_col, leads_col, settings_col, logs_col, seed_initial_settings, get_db_status
+# )
+# from backend.app.models import LeadCreate, AccountCreate, SettingsUpdate, GenerateMessageRequest, LeadStatusUpdate
+# from backend.app.services.ai_service import ai_service
+from backend.app.config import settings
+from backend.app.database import (
     accounts_col, leads_col, settings_col, logs_col, seed_initial_settings, get_db_status
 )
-from app.models import LeadCreate, AccountCreate, SettingsUpdate, GenerateMessageRequest, LeadStatusUpdate
-from app.services.ai_service import ai_service
+from backend.app.models import LeadCreate, AccountCreate, SettingsUpdate, GenerateMessageRequest, LeadStatusUpdate
+from backend.app.services.ai_service import ai_service
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
@@ -181,6 +191,7 @@ async def add_account(acc: AccountCreate):
         new_acc = {
             "username": username,
             "status": "Active",
+            "password": acc.password,
             "proxy": acc.proxy,
             "daily_actions": {"dm": 0, "follow": 0, "like": 0},
             "last_active": None
@@ -312,6 +323,141 @@ async def logs_stream():
             yield f"data: {json.dumps(log_item)}\n\n"
             
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+# Path where your browser cookies and sessions will be saved
+STATE_FILE = "storage_state.json"
+
+@app.post("/api/leads/send-auto")
+async def auto_send_outreach(payload: LeadStatusUpdate):
+    """Launches Playwright with session preservation and human behavior emulation"""
+    try:
+        from bson import ObjectId
+        # 1. Fetch the target lead
+        try:
+            query_id = ObjectId(payload.lead_id)
+        except Exception:
+            query_id = payload.lead_id
+            
+        lead = leads_col.find_one({"_id": query_id})
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+            
+        # 2. Fetch active sender account details
+        account = accounts_col.find_one({"status": "Active"})
+        if not account:
+            raise HTTPException(status_code=400, detail="No active sender profile found")
+            
+        password = account.get("password")
+        if not password:
+            raise HTTPException(status_code=400, detail="Password is required for first-time login verification")
+
+        log_event(f"Initializing browser engine for @{account['username']}...", "INFO")
+        
+        # 3. Generate the custom AI message
+        dm_text = ai_service.generate_b2b_dm(lead["username"], lead["niche"])
+        
+        # 4. Execute Browser Automation
+        async with async_playwright() as p:
+            # Headless=False is critical so we can manually handle security codes if they pop up
+            browser = await p.chromium.launch(headless=False)
+            
+            context_args = {
+                "viewport": {"width": 1280, "height": 720},
+                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            
+            # Use proxy if configured
+            if account.get("proxy"):
+                context_args["proxy"] = {"server": account["proxy"]}
+                
+            # Check if we have a saved login session
+            if os.path.exists(STATE_FILE):
+                log_event("Found active session state. Restoring authenticated cookies...", "INFO")
+                context = await browser.new_context(storage_state=STATE_FILE, **context_args)
+                page = await context.new_page()
+            else:
+                log_event("No session state found. Initiating first-time login sequence...", "WARNING")
+                context = await browser.new_context(**context_args)
+                page = await context.new_page()
+                
+                # Navigate to login
+                await page.goto("https://www.instagram.com/accounts/login/")
+                await page.wait_for_timeout(random.randint(2000, 4000))
+                
+                # Input credentials
+                await page.fill('input[name="username"]', account["username"])
+                await page.wait_for_timeout(random.randint(1000, 2000))
+                await page.fill('input[name="password"]', password)
+                await page.wait_for_timeout(random.randint(1000, 2000))
+                await page.click('button[type="submit"]')
+                
+                # PAUSE: Allow up to 60 seconds in case a verification code is sent
+                log_event("Waiting for login to complete. Solve any verification codes in the browser window...", "WARNING")
+                
+                # We wait until the main feed is visible or look for standard indicators
+                for attempt in range(12):  # 12 attempts of 5s (total 60s)
+                    await page.wait_for_timeout(5000)
+                    if "accounts/login" not in page.url:
+                        break
+                
+                # Save the validated browser state to storage_state.json
+                await context.storage_state(path=STATE_FILE)
+                log_event("Session authenticated and saved to storage_state.json.", "SUCCESS")
+
+            # 5. Emulate Human Navigation to Target Profile
+            log_event(f"Navigating to lead profile: @{lead['username']}...", "INFO")
+            await page.goto(f"https://www.instagram.com/{lead['username']}/")
+            
+            # Mimic browsing time: sleep randomly between 6 to 12 seconds
+            await page.wait_for_timeout(random.randint(6000, 12000))
+            
+            # Locate the message button cleanly without strict CSS class dependency
+            message_btn = page.get_by_role("button", { "name": "Message" }).first
+            if await message_btn.is_visible():
+                await message_btn.click()
+            else:
+                # Direct URL fallback if button structure fails
+                log_event("UI button locator missing. Navigating to direct message URL instead...", "WARNING")
+                await page.goto(f"https://www.instagram.com/direct/t/{lead['username']}/")
+                
+            await page.wait_for_timeout(random.randint(5000, 8000))
+
+            # Locate the chat input box
+            dm_input = page.locator("div[role='textbox']").first
+            await dm_input.focus()
+            
+            # Human Typing Delay: sleeps randomly between 30 to 75 milliseconds per keypress
+            log_event(f"Typing outreach proposal to @{lead['username']}...", "INFO")
+            for character in dm_text:
+                await page.keyboard.type(character)
+                await page.wait_for_timeout(random.randint(30, 75))
+                
+            # Random delay before pressing send (simulating thought time)
+            await page.wait_for_timeout(random.randint(1500, 3500))
+            await page.keyboard.press("Enter")
+            
+            # Allow time for message to register on servers before closing
+            await page.wait_for_timeout(4000)
+            
+            # Update storage state with updated tracking tokens/cookies
+            await context.storage_state(path=STATE_FILE)
+            
+            # Close browser cleanly
+            await context.close()
+            await browser.close()
+            
+        # 6. Update lead status in DB
+        leads_col.update_one(
+            {"_id": query_id},
+            {"$set": {"status": "DMed", "last_action": datetime.now().isoformat()}}
+        )
+        
+        log_event(f"Successfully auto-sent DM to @{lead['username']}.", "SUCCESS")
+        return {"status": "success", "message": f"Message sent to @{lead['username']}!"}
+        
+    except Exception as e:
+        log_event(f"Execution failed safely: {str(e)}", "ERROR")
+        raise HTTPException(status_code=500, detail=f"Failed to execute securely: {str(e)}")
 
 # Mount Dashboard SPA
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
