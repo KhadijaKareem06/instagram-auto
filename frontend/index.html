@@ -560,7 +560,7 @@
                             </div>
                             <div class="flex items-center justify-between py-3 border-t border-b border-white/5">
                                 <div>
-                                    <p class="text-xs text-slate-300 font-medium">Human Warmup Mode</p>
+                                    <p class="text-xs text-slate-300 font-medium">Safety Warmup Mode</p>
                                     <p class="text-[10px] text-slate-500">Gradually ramp up activity to avoid detection</p>
                                 </div>
                                 <label class="toggle-switch">
@@ -718,7 +718,6 @@
     </div>
 </div>
 
-<script src="app.js"></script>
 <script>
 // ═══ NAVIGATION ═══
 const pageMeta = {
@@ -883,10 +882,14 @@ function renderLeads(leads) {
                     <option value="Failed"   ${lead.status==='Failed'   ? 'selected':''}>Failed</option>
                 </select>
             </td>
-            <td class="p-3.5">
+            <td class="p-3 flex gap-2">
                 <button onclick="copyPitchToClipboard('${cleanUser}', '${lead.niche}', event)"
                     class="glass-card border border-blue-500/15 text-blue-400 hover:text-blue-300 px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1.5 transition">
                     <i class="fa-regular fa-copy"></i> Copy Pitch
+                </button>
+                <button onclick="autoSendPitch('${lead._id}', '${cleanUser}', '${lead.niche}', event)"
+                    class="btn-primary text-white px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-paper-plane text-[9px]"></i> Auto Send
                 </button>
             </td>`;
         body.appendChild(tr);
@@ -906,7 +909,6 @@ function toggleSelectAllLeads(checked) {
     document.querySelectorAll('.lead-select-checkbox').forEach(cb => {
         cb.checked = checked;
     });
-    // Derive selection from checkboxes currently in the DOM (post-filter rows only)
     selectedLeadIds = new Set();
     document.querySelectorAll('#leadsTableBody tr').forEach(tr => {
         const cb = tr.querySelector('.lead-select-checkbox');
@@ -960,7 +962,6 @@ async function openSendQueue() {
 
     openModal('queueModal');
 
-    // Generate all pitches up front so working through the queue is instant
     for (const lead of queueLeads) {
         const cleanUser = lead.username.replace(/^@+/, '');
         const itemEl = listEl.querySelector(`.queue-item[data-lead-id="${lead._id}"]`);
@@ -995,7 +996,6 @@ async function runQueueItem(leadId, username, event) {
     const pitchText = itemEl?.dataset.pitch;
     if (!pitchText) return;
 
-    // Copy to clipboard
     if (navigator.clipboard) {
         await navigator.clipboard.writeText(pitchText);
     } else {
@@ -1008,10 +1008,8 @@ async function runQueueItem(leadId, username, event) {
         document.body.removeChild(textArea);
     }
 
-    // Open the DM thread
     openInstagramDM(username);
 
-    // Mark row done
     itemEl.querySelector('.queue-status').innerText = 'Copied — paste & send in the tab that opened';
     itemEl.querySelector('.queue-status').classList.remove('text-slate-500');
     itemEl.querySelector('.queue-status').classList.add('text-emerald-400');
@@ -1020,13 +1018,10 @@ async function runQueueItem(leadId, username, event) {
     btn.style.opacity = '0.4';
     btn.innerHTML = `<i class="fa-solid fa-check"></i> Sent to this tab`;
 
-    // Sync CRM status
     updateLeadStatus(leadId, 'DMed');
     fetchLeads();
 
-    // Start a randomized cooldown before the next queue item can be actioned,
-    // to avoid firing off several sends back-to-back.
-    const cooldownMs = (30 + Math.random() * 45) * 1000; // 30-75s
+    const cooldownMs = (30 + Math.random() * 45) * 1000;
     queueCooldownUntil = Date.now() + cooldownMs;
     startQueueCooldownDisplay();
 }
@@ -1103,7 +1098,6 @@ async function updateLeadStatus(id, newStatus) {
 
 // ═══ COPY PITCH ═══
 async function copyPitchToClipboard(username, niche, event) {
-    // 1. Get the button element that was clicked to show visual feedback
     const btn = event ? event.currentTarget : null;
     const originalText = btn ? btn.innerHTML : "Copy Pitch";
     
@@ -1113,7 +1107,6 @@ async function copyPitchToClipboard(username, niche, event) {
     }
 
     try {
-        // 2. Fetch the AI response from the FastAPI backend
         const res = await fetch(`${API_BASE}/ai/preview`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1125,11 +1118,10 @@ async function copyPitchToClipboard(username, niche, event) {
         const data = await res.json();
         const pitchText = data.dm;
 
-        // 3. Fallback clipboard copying mechanism for local file protocols (file://)
         if (!navigator.clipboard) {
             const textArea = document.createElement("textarea");
             textArea.value = pitchText;
-            textArea.style.position = "fixed";  // Avoid scrolling down
+            textArea.style.position = "fixed";
             document.body.appendChild(textArea);
             textArea.focus();
             textArea.select();
@@ -1142,19 +1134,15 @@ async function copyPitchToClipboard(username, niche, event) {
             }
             document.body.removeChild(textArea);
         } else {
-            // Standard modern secure copy
             await navigator.clipboard.writeText(pitchText);
             showToast(`Pitch for @${username} copied — opening DM thread...`);
         }
 
-        // 4. Open the lead's Instagram DM thread in a new tab so the pitch
-        //    just needs to be pasted and sent — no manual searching required.
         openInstagramDM(username);
     } catch (e) {
         console.error("AI copy failed:", e);
         showToast("Copy failed - is Groq API Key missing or invalid?", "error");
     } finally {
-        // 5. Restore the button state
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = originalText;
@@ -1162,9 +1150,40 @@ async function copyPitchToClipboard(username, niche, event) {
     }
 }
 
-// Opens the Instagram DM thread for a given username in a new tab.
-// ig.me/m/<username> resolves to the direct-message compose view when
-// you're logged into instagram.com in that browser/session already.
+// ═══ AUTO SEND OUTREACH (PLAYWRIGHT ENGINE) ═══
+async function autoSendPitch(leadId, username, niche, event) {
+    const btn = event ? event.currentTarget : null;
+    const originalText = btn ? btn.innerHTML : "Auto Send";
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Sending...`;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/leads/send-auto`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lead_id: leadId, status: "DMed" })
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Failed to execute safely.");
+
+        showToast(`Auto-sent DM to @${username}!`);
+        fetchLeads();
+        fetchStats();
+    } catch (e) {
+        console.error("Auto send failed:", e);
+        showToast(e.message || "Auto-send failed.", "error");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+}
+
 function openInstagramDM(username) {
     const clean = username.replace(/^@+/, '');
     window.open(`https://ig.me/m/${clean}`, '_blank', 'noopener');
@@ -1313,22 +1332,24 @@ function renderAnalytics() {
 
     // Funnel
     const funnelEl = document.getElementById('funnelChart');
-    funnelEl.innerHTML = '';
-    const funnelData = [
-        { label: 'Total Leads', value: total, color: 'bg-blue-500' },
-        { label: 'DMs Sent',    value: dmed,  color: 'bg-sky-400' },
-        { label: 'Replies',     value: replied,color: 'bg-violet-400' },
-    ];
-    funnelData.forEach(f => {
-        const pct = total > 0 ? Math.round((f.value / total) * 100) : 0;
-        funnelEl.innerHTML += `
-            <div class="ana-row">
-                <span class="text-[11px] text-slate-400 w-24 flex-shrink-0">${f.label}</span>
-                <div class="ana-bar-wrap"><div class="ana-bar ${f.color}" style="width:${pct}%"></div></div>
-                <span class="text-[11px] text-white font-semibold w-8 text-right">${f.value}</span>
-                <span class="text-[10px] text-slate-500 w-8">${pct}%</span>
-            </div>`;
-    });
+    if (funnelEl) {
+        funnelEl.innerHTML = '';
+        const funnelData = [
+            { label: 'Total Leads', value: total, color: 'bg-blue-500' },
+            { label: 'DMs Sent',    value: dmed,  color: 'bg-sky-400' },
+            { label: 'Replies',     value: replied,color: 'bg-violet-400' },
+        ];
+        funnelData.forEach(f => {
+            const pct = total > 0 ? Math.round((f.value / total) * 100) : 0;
+            funnelEl.innerHTML += `
+                <div class="ana-row">
+                    <span class="text-[11px] text-slate-400 w-24 flex-shrink-0">${f.label}</span>
+                    <div class="ana-bar-wrap"><div class="ana-bar ${f.color}" style="width:${pct}%"></div></div>
+                    <span class="text-[11px] text-white font-semibold w-8 text-right">${f.value}</span>
+                    <span class="text-[10px] text-slate-500 w-8">${pct}%</span>
+                </div>`;
+        });
+    }
 
     // Bar chart mock (simulated daily data)
     const days   = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -1336,49 +1357,55 @@ function renderAnalytics() {
     const maxV   = Math.max(...values, 1);
     const barEl  = document.getElementById('barChart');
     const labEl  = document.getElementById('barLabels');
-    barEl.innerHTML = ''; labEl.innerHTML = '';
-    values.forEach((v, i) => {
-        const h = Math.round((v / maxV) * 100);
-        barEl.innerHTML  += `<div class="flex-1 flex flex-col items-center justify-end">
-            <span class="text-[10px] text-slate-500 mb-1">${v}</span>
-            <div class="chart-bar w-full" style="height:${h}%"></div>
-        </div>`;
-        labEl.innerHTML  += `<span class="flex-1 text-center text-[10px] text-slate-500">${days[i]}</span>`;
-    });
+    if (barEl && labEl) {
+        barEl.innerHTML = ''; labEl.innerHTML = '';
+        values.forEach((v, i) => {
+            const h = Math.round((v / maxV) * 100);
+            barEl.innerHTML  += `<div class="flex-1 flex flex-col items-center justify-end">
+                <span class="text-[10px] text-slate-500 mb-1">${v}</span>
+                <div class="chart-bar w-full" style="height:${h}%"></div>
+            </div>`;
+            labEl.innerHTML  += `<span class="flex-1 text-center text-[10px] text-slate-500">${days[i]}</span>`;
+        });
+    }
 
     // Niche breakdown
     const nicheEl = document.getElementById('nicheBreakdown');
-    const niches  = {};
-    allLeads.forEach(l => { niches[l.niche] = (niches[l.niche] || 0) + 1; });
-    nicheEl.innerHTML = '';
-    Object.entries(niches).forEach(([n, c]) => {
-        const pct = total > 0 ? Math.round((c / total) * 100) : 0;
-        nicheEl.innerHTML += `
-            <div class="ana-row">
-                <span class="text-[11px] text-slate-400 w-32 flex-shrink-0">${n}</span>
-                <div class="ana-bar-wrap"><div class="ana-bar" style="width:${pct}%"></div></div>
-                <span class="text-[11px] text-white font-semibold w-6 text-right">${c}</span>
-            </div>`;
-    });
-    if (!Object.keys(niches).length) nicheEl.innerHTML = '<p class="text-xs text-slate-500 italic">No leads yet</p>';
+    if (nicheEl) {
+        const niches  = {};
+        allLeads.forEach(l => { niches[l.niche] = (niches[l.niche] || 0) + 1; });
+        nicheEl.innerHTML = '';
+        Object.entries(niches).forEach(([n, c]) => {
+            const pct = total > 0 ? Math.round((c / total) * 100) : 0;
+            nicheEl.innerHTML += `
+                <div class="ana-row">
+                    <span class="text-[11px] text-slate-400 w-32 flex-shrink-0">${n}</span>
+                    <div class="ana-bar-wrap"><div class="ana-bar" style="width:${pct}%"></div></div>
+                    <span class="text-[11px] text-white font-semibold w-6 text-right">${c}</span>
+                </div>`;
+        });
+        if (!Object.keys(niches).length) nicheEl.innerHTML = '<p class="text-xs text-slate-500 italic">No leads yet</p>';
+    }
 
     // Status breakdown
     const statEl   = document.getElementById('statusBreakdown');
-    const statuses = {};
-    allLeads.forEach(l => { statuses[l.status] = (statuses[l.status] || 0) + 1; });
-    const sColors  = { Pending: '#3b82f6', DMed: '#34d399', Replied: '#a78bfa', Failed: '#f87171' };
-    statEl.innerHTML = '';
-    Object.entries(statuses).forEach(([s, c]) => {
-        const pct = total > 0 ? Math.round((c / total) * 100) : 0;
-        const col = sColors[s] || '#64748b';
-        statEl.innerHTML += `
-            <div class="ana-row">
-                <span class="text-[11px] text-slate-400 w-24 flex-shrink-0">${s}</span>
-                <div class="ana-bar-wrap"><div class="ana-bar" style="width:${pct}%;background:${col}"></div></div>
-                <span class="text-[11px] text-white font-semibold w-6 text-right">${c}</span>
-            </div>`;
-    });
-    if (!Object.keys(statuses).length) statEl.innerHTML = '<p class="text-xs text-slate-500 italic">No leads yet</p>';
+    if (statEl) {
+        const statuses = {};
+        allLeads.forEach(l => { statuses[l.status] = (statuses[l.status] || 0) + 1; });
+        const sColors  = { Pending: '#3b82f6', DMed: '#34d399', Replied: '#a78bfa', Failed: '#f87171' };
+        statEl.innerHTML = '';
+        Object.entries(statuses).forEach(([s, c]) => {
+            const pct = total > 0 ? Math.round((c / total) * 100) : 0;
+            const col = sColors[s] || '#64748b';
+            statEl.innerHTML += `
+                <div class="ana-row">
+                    <span class="text-[11px] text-slate-400 w-24 flex-shrink-0">${s}</span>
+                    <div class="ana-bar-wrap"><div class="ana-bar" style="width:${pct}%;background:${col}"></div></div>
+                    <span class="text-[11px] text-white font-semibold w-6 text-right">${c}</span>
+                </div>`;
+        });
+        if (!Object.keys(statuses).length) statEl.innerHTML = '<p class="text-xs text-slate-500 italic">No leads yet</p>';
+    }
 }
 
 // ═══ INIT ═══

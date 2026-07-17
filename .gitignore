@@ -5,3 +5,6 @@ __pycache__
 
 code.py
 combined_project_code.txt
+backend/app/__pycache__/
+
+storage_state.json

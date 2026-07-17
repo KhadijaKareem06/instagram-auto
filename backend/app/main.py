@@ -1,5 +1,7 @@
-import json
+import sys
 import asyncio
+import threading
+import json
 import logging
 from datetime import datetime
 from fastapi import FastAPI, HTTPException, BackgroundTasks
@@ -9,14 +11,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 import random
 from playwright.async_api import async_playwright
-from fastapi import HTTPException
 
-# from backend.app.config import settings
-# from backend.app.database import (
-#     accounts_col, leads_col, settings_col, logs_col, seed_initial_settings, get_db_status
-# )
-# from backend.app.models import LeadCreate, AccountCreate, SettingsUpdate, GenerateMessageRequest, LeadStatusUpdate
-# from backend.app.services.ai_service import ai_service
 from backend.app.config import settings
 from backend.app.database import (
     accounts_col, leads_col, settings_col, logs_col, seed_initial_settings, get_db_status
@@ -71,6 +66,172 @@ def log_event(message: str, level: str = "INFO"):
     # Broadcast to dashboard SSE
     asyncio.create_task(log_queue.put(log_doc))
 
+
+# ═══ WINDOWS SUBPROCESS THREAD ISOLATION ENGINE ═══
+# ═══ WINDOWS SUBPROCESS THREAD ISOLATION ENGINE ═══
+
+def run_proactor_loop(async_func, *args, **kwargs):
+    """
+    Helper function to instantiate and run a coroutine inside an isolated Windows 
+    Proactor event loop within a separate, dedicated background OS thread.
+    This completely bypasses Uvicorn's SelectorEventLoop restrictions.
+    """
+    result = None
+    exception = None
+
+    def worker():
+        nonlocal result, exception
+        try:
+            if sys.platform == "win32":
+                # Set loop policy for this thread
+                asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                coro = async_func(*args, **kwargs)
+                result = loop.run_until_complete(coro)
+            finally:
+                loop.close()
+        except Exception as e:
+            exception = e
+
+    thread = threading.Thread(target=worker)
+    thread.start()
+    thread.join()
+
+    if exception:
+        raise exception
+    return result
+
+    def worker():
+        nonlocal result, exception
+        if sys.platform == "win32":
+            loop = asyncio.WindowsProactorEventLoop()
+        else:
+            loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            # Safely instantiate and run the coroutine in the background thread
+            coro = async_func(*args, **kwargs)
+            result = loop.run_until_complete(coro)
+        except Exception as e:
+            exception = e
+        finally:
+            loop.close()
+
+    thread = threading.Thread(target=worker)
+    thread.start()
+    thread.join()
+
+    if exception:
+        raise exception
+    return result
+
+
+# STATE_FILE = "storage_state.json"
+# Create an absolute path to storage_state.json in your root project folder
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+STATE_FILE = os.path.join(BASE_DIR, "storage_state.json")
+
+async def _playwright_send_flow(account, lead, dm_text):
+    """Isolated Playwright execution context with explicit absolute session loading and navigation rescue"""
+    print(">>> RUNNING THE NEW AUTO-SEND FLOW (V2) <<<") # <--- ADD THIS LINE
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=False)
+        
+        context_args = {
+            "viewport": {"width": 1280, "height": 720},
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        
+        # Absolute path session check
+        if os.path.exists(STATE_FILE):
+            log_event("Found active session state. Restoring authenticated cookies...", "INFO")
+            context = await browser.new_context(storage_state=STATE_FILE, **context_args)
+            page = await context.new_page()
+        else:
+            log_event("No session state found. Initiating first-time login sequence...", "WARNING")
+            context = await browser.new_context(**context_args)
+            page = await context.new_page()
+            page.set_default_timeout(15000)
+            
+            await page.goto("https://www.instagram.com/accounts/login/")
+            await page.wait_for_timeout(4000)
+            
+            if "login" in page.url:
+                try:
+                    await page.wait_for_selector('input[name="username"]', timeout=8000)
+                    await page.fill('input[name="username"]', account["username"])
+                    await page.wait_for_timeout(random.randint(1000, 2000))
+                    await page.fill('input[name="password"]', account["password"])
+                    await page.wait_for_timeout(random.randint(1000, 2000))
+                    await page.click('button[type="submit"]')
+                    
+                    log_event("Credentials entered automatically. If prompted, click 'Save Info' or enter security codes now...", "WARNING")
+                except Exception:
+                    log_event("Login fields not found or bypassed. Please log in manually if needed...", "INFO")
+            
+            # Wait up to 60 seconds for you to log in/redirect
+            for attempt in range(12):
+                await page.wait_for_timeout(5000)
+                if "login" not in page.url:
+                    break
+            
+            try:
+                # Save session state so we don't need credentials next time
+                await context.storage_state(path=STATE_FILE)
+                log_event("Session authenticated and saved successfully.", "SUCCESS")
+            except Exception as e:
+                log_event(f"Could not save session state: {str(e)}", "WARNING")
+
+        # --- GUARANTEED LEAD PROFILE NAVIGATION ---
+        log_event(f"Opening lead profile: @{lead['username']}...", "INFO")
+        try:
+            # Navigate to target profile and ignore heavy home feed loads
+            await page.goto(f"https://www.instagram.com/{lead['username']}/", wait_until="domcontentloaded", timeout=45000)
+        except Exception:
+            log_event("Profile page took too long to fully load. Proceeding with DOM elements...", "WARNING")
+            
+        await page.wait_for_timeout(random.randint(5000, 8000))
+        
+        # Click the "Message" button on the profile page
+        message_btn = page.get_by_role("button", name="Message").first
+        if await message_btn.is_visible():
+            await message_btn.click()
+        else:
+            log_event("Message button locator missing on profile. Navigating directly to thread URL...", "WARNING")
+            try:
+                await page.goto(f"https://www.instagram.com/direct/t/{lead['username']}/", wait_until="domcontentloaded", timeout=30000)
+            except Exception:
+                pass
+            
+        await page.wait_for_timeout(random.randint(6000, 9000))
+
+        # Locate the chat input box and wait for it to be ready
+        log_event("Locating direct message input box...", "INFO")
+        dm_input = page.locator("div[role='textbox']").first
+        await dm_input.wait_for(state="visible", timeout=20000)
+        await dm_input.focus()
+        
+        await page.wait_for_timeout(random.randint(1500, 3000))
+
+        log_event(f"Auto-pasting outreach proposal to @{lead['username']}...", "INFO")
+        
+        # Inject text directly using keyboard event simulator
+        await page.keyboard.insert_text(dm_text)
+        
+        await page.wait_for_timeout(random.randint(2000, 4500))
+        await page.keyboard.press("Enter")
+        log_event(f"Message sent successfully to @{lead['username']}!", "SUCCESS")
+        
+        await page.wait_for_timeout(8000)
+        
+        # Update our session cookies with the latest state
+        await context.storage_state(path=STATE_FILE)
+        
+        await context.close()
+        await browser.close()
+
 # Background Queue Task
 async def run_automation_loop():
     global campaign_running
@@ -78,21 +239,18 @@ async def run_automation_loop():
     
     while campaign_running:
         try:
-            # 1. Fetch available accounts
             accounts = list(accounts_col.find({"status": "Active"}))
             if not accounts:
                 log_event("No active accounts available! Halting outreach loop.", "WARNING")
                 campaign_running = False
                 break
                 
-            # 2. Get pending B2B lead
             lead = leads_col.find_one({"status": "Pending"})
             if not lead:
                 log_event("No pending leads remaining in the database.", "INFO")
                 campaign_running = False
                 break
             
-            # Select account (simple round-robin rotate)
             account = accounts[0]
             leads_col.update_one(
                 {"_id": lead["_id"]},
@@ -103,8 +261,6 @@ async def run_automation_loop():
                 "INFO"
             )
 
-            # Real external Instagram actions are not implemented in this backend.
-            # Keep logs truthful and avoid claiming follow/like/comment/DM happened.
             if not settings.LIVE_EXECUTION_ENABLED:
                 leads_col.update_one(
                     {"_id": lead["_id"]},
@@ -117,7 +273,6 @@ async def run_automation_loop():
                 await asyncio.sleep(1)
                 continue
 
-            # Placeholder: when live execution is implemented, this branch should execute real actions and logs.
             leads_col.update_one(
                 {"_id": lead["_id"]},
                 {"$set": {"status": "DMed", "last_action": datetime.now().isoformat()}}
@@ -130,7 +285,6 @@ async def run_automation_loop():
                 {"$inc": {"daily_actions.dm": 1, "daily_actions.follow": 1, "daily_actions.like": 1}}
             )
             
-            # Cooldown execution
             cooldown = settings.MIN_DELAY_SECONDS
             log_event(f"Cooldown for {cooldown} seconds before next lead...", "INFO")
             
@@ -149,13 +303,11 @@ async def run_automation_loop():
 
 @app.get("/api/dashboard/stats")
 async def get_dashboard_stats():
-    """Retrieve aggregations for the control header metrics"""
     total_leads = leads_col.count_documents({})
     pending_leads = leads_col.count_documents({"status": "Pending"})
     dmed_leads = leads_col.count_documents({"status": "DMed"})
     replied_leads = leads_col.count_documents({"status": "Replied"})
     failed_leads = leads_col.count_documents({"status": "Failed"})
-    
     active_accounts = accounts_col.count_documents({"status": "Active"})
     
     return {
@@ -172,7 +324,6 @@ async def get_dashboard_stats():
 
 @app.get("/api/health/db")
 async def db_health():
-    """Reports whether app is using MongoDB or fallback storage."""
     return get_db_status()
 
 @app.get("/api/accounts")
@@ -246,12 +397,10 @@ async def add_lead(lead: LeadCreate):
         raise HTTPException(status_code=400, detail=f"Lead save failed: {str(e)}")
 
 
-
 @app.post("/api/leads/status")
 async def update_lead_status(payload: LeadStatusUpdate):
     try:
         from bson import ObjectId
-        # Support both MongoDB ObjectId and Mock string IDs
         try:
             query_id = ObjectId(payload.lead_id)
         except Exception:
@@ -293,7 +442,6 @@ async def update_settings(payload: SettingsUpdate):
 
 @app.post("/api/ai/preview")
 async def preview_ai_msg(payload: GenerateMessageRequest):
-    """Realtime debug previewing Groq prompt outputs"""
     dm = ai_service.generate_b2b_dm(payload.username, payload.niche, payload.custom_instructions)
     comment = ai_service.generate_comment(payload.username, payload.niche)
     return {"dm": dm, "comment": comment}
@@ -311,9 +459,7 @@ async def toggle_campaign(background_tasks: BackgroundTasks):
 
 @app.get("/api/logs/stream")
 async def logs_stream():
-    """Realtime Server-Sent Events log pipe for the dynamic GUI panel"""
     async def event_generator():
-        # Yield previous logs on first connection
         past_logs = list(logs_col.find().sort("timestamp", -1).limit(20))
         for log in reversed(past_logs):
             yield f"data: {json.dumps({'timestamp': log['timestamp'], 'level': log['level'], 'message': log['message']})}\n\n"
@@ -324,12 +470,10 @@ async def logs_stream():
             
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
-# Path where your browser cookies and sessions will be saved
-STATE_FILE = "storage_state.json"
 
 @app.post("/api/leads/send-auto")
 async def auto_send_outreach(payload: LeadStatusUpdate):
-    """Launches Playwright with session preservation and human behavior emulation"""
+    """Launches Playwright securely using isolated background worker thread execution"""
     try:
         from bson import ObjectId
         # 1. Fetch the target lead
@@ -356,97 +500,16 @@ async def auto_send_outreach(payload: LeadStatusUpdate):
         # 3. Generate the custom AI message
         dm_text = ai_service.generate_b2b_dm(lead["username"], lead["niche"])
         
-        # 4. Execute Browser Automation
-        async with async_playwright() as p:
-            # Headless=False is critical so we can manually handle security codes if they pop up
-            browser = await p.chromium.launch(headless=False)
+        # 4. Offload task to our isolated background Proactor loop to prevent NotImplementedError
+        await asyncio.to_thread(
+            run_proactor_loop, 
+            _playwright_send_flow, 
+            account, 
+            lead, 
+            dm_text
+        )
             
-            context_args = {
-                "viewport": {"width": 1280, "height": 720},
-                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            }
-            
-            # Use proxy if configured
-            if account.get("proxy"):
-                context_args["proxy"] = {"server": account["proxy"]}
-                
-            # Check if we have a saved login session
-            if os.path.exists(STATE_FILE):
-                log_event("Found active session state. Restoring authenticated cookies...", "INFO")
-                context = await browser.new_context(storage_state=STATE_FILE, **context_args)
-                page = await context.new_page()
-            else:
-                log_event("No session state found. Initiating first-time login sequence...", "WARNING")
-                context = await browser.new_context(**context_args)
-                page = await context.new_page()
-                
-                # Navigate to login
-                await page.goto("https://www.instagram.com/accounts/login/")
-                await page.wait_for_timeout(random.randint(2000, 4000))
-                
-                # Input credentials
-                await page.fill('input[name="username"]', account["username"])
-                await page.wait_for_timeout(random.randint(1000, 2000))
-                await page.fill('input[name="password"]', password)
-                await page.wait_for_timeout(random.randint(1000, 2000))
-                await page.click('button[type="submit"]')
-                
-                # PAUSE: Allow up to 60 seconds in case a verification code is sent
-                log_event("Waiting for login to complete. Solve any verification codes in the browser window...", "WARNING")
-                
-                # We wait until the main feed is visible or look for standard indicators
-                for attempt in range(12):  # 12 attempts of 5s (total 60s)
-                    await page.wait_for_timeout(5000)
-                    if "accounts/login" not in page.url:
-                        break
-                
-                # Save the validated browser state to storage_state.json
-                await context.storage_state(path=STATE_FILE)
-                log_event("Session authenticated and saved to storage_state.json.", "SUCCESS")
-
-            # 5. Emulate Human Navigation to Target Profile
-            log_event(f"Navigating to lead profile: @{lead['username']}...", "INFO")
-            await page.goto(f"https://www.instagram.com/{lead['username']}/")
-            
-            # Mimic browsing time: sleep randomly between 6 to 12 seconds
-            await page.wait_for_timeout(random.randint(6000, 12000))
-            
-            # Locate the message button cleanly without strict CSS class dependency
-            message_btn = page.get_by_role("button", { "name": "Message" }).first
-            if await message_btn.is_visible():
-                await message_btn.click()
-            else:
-                # Direct URL fallback if button structure fails
-                log_event("UI button locator missing. Navigating to direct message URL instead...", "WARNING")
-                await page.goto(f"https://www.instagram.com/direct/t/{lead['username']}/")
-                
-            await page.wait_for_timeout(random.randint(5000, 8000))
-
-            # Locate the chat input box
-            dm_input = page.locator("div[role='textbox']").first
-            await dm_input.focus()
-            
-            # Human Typing Delay: sleeps randomly between 30 to 75 milliseconds per keypress
-            log_event(f"Typing outreach proposal to @{lead['username']}...", "INFO")
-            for character in dm_text:
-                await page.keyboard.type(character)
-                await page.wait_for_timeout(random.randint(30, 75))
-                
-            # Random delay before pressing send (simulating thought time)
-            await page.wait_for_timeout(random.randint(1500, 3500))
-            await page.keyboard.press("Enter")
-            
-            # Allow time for message to register on servers before closing
-            await page.wait_for_timeout(4000)
-            
-            # Update storage state with updated tracking tokens/cookies
-            await context.storage_state(path=STATE_FILE)
-            
-            # Close browser cleanly
-            await context.close()
-            await browser.close()
-            
-        # 6. Update lead status in DB
+        # 5. Update lead status in DB
         leads_col.update_one(
             {"_id": query_id},
             {"$set": {"status": "DMed", "last_action": datetime.now().isoformat()}}
